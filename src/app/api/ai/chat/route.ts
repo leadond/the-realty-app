@@ -62,15 +62,13 @@ export async function POST(request: Request) {
   let result;
   let usedProvider = "gemini";
 
-  let geminiDebugError: string | null = null;
-
   try {
     if (!geminiConfigured) throw new Error("GEMINI_NOT_CONFIGURED");
     result = await callGemini(messages, callOptions);
   } catch (geminiError) {
-    geminiDebugError = geminiError instanceof Error ? geminiError.message : String(geminiError);
     if (!anthropicConfigured) {
-      return NextResponse.json({ error: geminiDebugError }, { status: 502 });
+      const message = geminiError instanceof Error ? geminiError.message : "AI request failed";
+      return NextResponse.json({ error: message }, { status: 502 });
     }
     try {
       usedProvider = "anthropic";
@@ -94,5 +92,5 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ content: result.content, provider: usedProvider, _geminiDebugError: geminiDebugError });
+  return NextResponse.json({ content: result.content, provider: usedProvider });
 }
