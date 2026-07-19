@@ -1,0 +1,672 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH & USERS
+// ============================================================
+
+model User {
+  id            String           @id @default(cuid())
+  name          String?
+  email         String           @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  phone         String?
+  licenseNumber String?
+  brokerage     String?
+  role          UserRole         @default(USER)
+  subscription  Subscription?
+  leads         Lead[]
+  showings      Showing[]
+  properties    Property[]
+  preferences   ClientPreference[]
+  openHouses    OpenHouse[]
+  checklists    ChecklistItem[]
+  briefings     ShowingBriefing[]
+  followUps     FollowUp[]
+  documents     Document[]
+  requirements  ClientRequirements[]
+  propertyMatches PropertyMatch[]
+  transactions  Transaction[]
+  reviews       Review[]
+  marketingPosts MarketingPost[]
+  reports       Report[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// ============================================================
+// SUBSCRIPTIONS / BILLING
+// ============================================================
+
+model Subscription {
+  id          String      @id @default(cuid())
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        String      // free, pro, premium, enterprise
+  status      String      @default("active") // active, canceled, past_due
+  startDate   DateTime    @default(now())
+  endDate     DateTime?
+  nextBilling DateTime?
+  stripeCustomerId String?
+  stripeSubscriptionId String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("subscriptions")
+}
+
+// ============================================================
+// CRM - LEADS
+// ============================================================
+
+model Lead {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  source        LeadSource  @default(WEBSITE)
+  status        LeadStatus  @default(NEW)
+  priority      LeadPriority @default(MEDIUM)
+  budgetMin     Int?
+  budgetMax     Int?
+  bedrooms      Int?
+  bathrooms     Int?
+  propertyType  String?
+  location      String?
+  timeline      String? // immediate, 1-3 months, 3-6 months, 6+ months
+  notes         String?
+  tags          String?     // JSON array stored as string
+  showings      Showing[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("leads")
+}
+
+enum LeadSource {
+  WEBSITE
+  REFERRAL
+  SOCIAL_MEDIA
+  OPEN_HOUSE
+  COLD_CALL
+  EMAIL_CAMPAIGN
+  ZILLOW
+  REDFIN
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  ACTIVE
+  NEGOTIATING
+  WON
+  LOST
+  UNQUALIFIED
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ============================================================
+// SHOWINGS
+// ============================================================
+
+model Showing {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId        String?
+  lead          Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  propertyId    String
+  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  scheduledAt   DateTime
+  status        ShowingStatus @default(SCHEDULED)
+  durationMin   Int         @default(30)
+  notes         String?
+  feedback      String?
+  briefings     ShowingBriefing[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("showings")
+}
+
+enum ShowingStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ============================================================
+// PROPERTIES
+// ============================================================
+
+model Property {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mlsId         String?     @unique
+  address       String
+  city          String
+  state         String
+  zip           String
+  country       String      @default("US")
+  latitude      Float?
+  longitude     Float?
+  price         Int
+  bedrooms      Int
+  bathrooms     Float
+  sqft          Int?
+  lotSize       Float?
+  yearBuilt     Int?
+  propertyType  PropertyTypeEnum
+  status        PropertyListingStatus @default(ACTIVE)
+  description   String?
+  features      String?     // JSON array stored as string
+  photos        String?     // JSON array stored as string
+  virtualTourUrl String?
+  openHouses    OpenHouse[]
+  showings      Showing[]
+  matches       PropertyMatch[]
+  documents     Document[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([city, state, zip])
+  @@map("properties")
+}
+
+enum PropertyTypeEnum {
+  SINGLE_FAMILY
+  CONDO
+  TOWNHOUSE
+  MULTI_FAMILY
+  LAND
+  MOBILE_HOME
+  COMMERCIAL
+  RANCH
+  OTHER
+}
+
+enum PropertyListingStatus {
+  ACTIVE
+  PENDING
+  SOLD
+  OFF_MARKET
+  COMING_SOON
+}
+
+// ============================================================
+// CLIENT PREFERENCES
+// ============================================================
+
+model ClientPreference {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId        String?
+  preferenceType PreferenceType
+  category      String      // location, style, amenity, budget, school, commute
+  value         String
+  weight        Float       @default(1.0) // importance weight 0-1
+  isMustHave    Boolean     @default(false)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("client_preferences")
+}
+
+enum PreferenceType {
+  MUST_HAVE
+  NICE_TO_HAVE
+  DEAL_BREAKER
+  NEUTRAL
+}
+
+// ============================================================
+// OPEN HOUSES
+// ============================================================
+
+model OpenHouse {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId    String
+  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  startDate     DateTime
+  endDate       DateTime
+  status        OpenHouseStatus @default(UPCOMING)
+  description   String?
+  specialInstructions String?
+  expectedAttendance Int    @default(0)
+  visitors      Visitor[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("open_houses")
+}
+
+enum OpenHouseStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Visitor {
+  id            String      @id @default(cuid())
+  openHouseId   String
+  openHouse     OpenHouse   @relation(fields: [openHouseId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  isRegistered  Boolean     @default(false)
+  interestLevel InterestLevel @default(NEUTRAL)
+  notes         String?
+  followUpNeeded Boolean    @default(false)
+  followUpDate  DateTime?
+  signedInAt    DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@map("visitors")
+}
+
+enum InterestLevel {
+  VERY_INTERESTED
+  INTERESTED
+  NEUTRAL
+  NOT_INTERESTED
+  JUST_BROWSING
+}
+
+// ============================================================
+// CHECKLISTS
+// ============================================================
+
+model ChecklistItem {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  isCompleted   Boolean     @default(false)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  category      String      // listing, buying, selling, closing, marketing
+  priority      Int         @default(0)
+  orderId       Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("checklist_items")
+}
+
+// ============================================================
+// SHOWING BRIEFINGS (AI-generated)
+// ============================================================
+
+model ShowingBriefing {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showingId     String
+  showing       Showing     @relation(fields: [showingId], references: [id], onDelete: Cascade)
+  content       String      // AI-generated briefing text
+  highlights    String?     // JSON array stored as string
+  talkingPoints String?     // JSON array stored as string
+  competitorAnalysis String?
+  generatedAt   DateTime    @default(now())
+
+  @@map("showing_briefings")
+}
+
+// ============================================================
+// FOLLOW-UPS
+// ============================================================
+
+model FollowUp {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId        String?
+  subject       String
+  type          FollowUpType @default(EMAIL)
+  status        FollowUpStatus @default(PENDING)
+  scheduledFor  DateTime
+  completedAt   DateTime?
+  content       String?
+  notes         String?
+  reminderSent  Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("follow_ups")
+}
+
+enum FollowUpType {
+  EMAIL
+  PHONE
+  TEXT
+  MEETING
+  MAIL
+  OTHER
+}
+
+enum FollowUpStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+// ============================================================
+// DOCUMENTS
+// ============================================================
+
+model Document {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId    String?
+  property      Property?   @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  name          String
+  type          DocumentType
+  url           String
+  size          Int         // bytes
+  mimeType      String?
+  isShared      Boolean     @default(false)
+  sharedWith    String?     // email or user ID
+  tags          String?     // JSON array stored as string
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("documents")
+}
+
+enum DocumentType {
+  DISCLOSURE
+  CONTRACT
+  INSPECTION
+  APPRAISAL
+  MORTGAGE
+  INSURANCE
+  TAX
+  PHOTO
+  FLYER
+  OTHER
+}
+
+// ============================================================
+// CLIENT REQUIREMENTS (AI matching input)
+// ============================================================
+
+model ClientRequirements {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId        String?
+  budgetRange   String?     // "$300k-$500k"
+  desiredLocations String?  // JSON array stored as string
+  bedrooms      Int?
+  bathrooms     Int?
+  minSqft       Int?
+  maxSqft       Int?
+  propertyTypes String?     // JSON array of PropertyTypeEnum values
+  mustHaveFeatures String?  // JSON array stored as string
+  dealBreakers  String?     // JSON array stored as string
+  timeline      String?
+  specialNeeds  String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("client_requirements")
+}
+
+// ============================================================
+// PROPERTY MATCHES (AI-generated recommendations)
+// ============================================================
+
+model PropertyMatch {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId    String
+  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  leadId        String?
+  matchScore    Float       // 0-100
+  matchReason   String      // AI-generated explanation
+  matchedAt     DateTime    @default(now())
+  isViewed      Boolean     @default(false)
+  viewedAt      DateTime?
+
+  @@map("property_matches")
+}
+
+// ============================================================
+// NEIGHBORHOOD DATA (AI-enriched)
+// ============================================================
+
+model NeighborhoodData {
+  id            String      @id @default(cuid())
+  name          String
+  city          String
+  state         String
+  zip           String?
+  medianPrice   Int?
+  priceTrend    Float?      // percent change
+  daysOnMarket  Int?
+  schoolRating  Float?      // 0-10
+  crimeRating   Float?      // 0-10 (higher = safer)
+  walkScore     Int?        // 0-100
+  transitScore  Int?
+  demographics  String?     // JSON string
+  amenities     Amenity[]
+  description   String?     // AI-generated neighborhood overview
+  lastUpdated   DateTime    @default(now())
+
+  @@unique([name, city, state])
+  @@map("neighborhood_data")
+}
+
+model Amenity {
+  id            String      @id @default(cuid())
+  neighborhoodId String
+  neighborhood  NeighborhoodData @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
+  name          String
+  category      String      // park, school, restaurant, shopping, transit, hospital
+  distance      Float?      // miles
+  rating        Float?
+  description   String?
+
+  @@map("amenities")
+}
+
+// ============================================================
+// TRANSACTIONS
+// ============================================================
+
+model Transaction {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId        String?
+  propertyId    String?
+  type          TransactionType @default(PURCHASE)
+  status        TransactionStatus @default(INITIATED)
+  price         Int?
+  closingDate   DateTime?
+  commission    Float?
+  commissionRate Float?     // percentage
+  agentNotes    String?
+  checklist     TransactionChecklist[]
+  documents     Document[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("transactions")
+}
+
+enum TransactionType {
+  PURCHASE
+  SALE
+  RENTAL
+  REFINANCE
+}
+
+enum TransactionStatus {
+  INITIATED
+  UNDER_CONTRACT
+  IN_ESCROW
+  INSPECTION
+  FINANCING
+  NEGOTIATING_REPAIRS
+  PRE_CLOSING
+  CLOSED
+  FALLING_THROUGH
+  CANCELLED
+}
+
+model TransactionChecklist {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  isCompleted   Boolean     @default(false)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  category      String      // paperwork, inspection, financing, closing
+  orderId       Int         @default(0)
+  createdAt     DateTime    @default(now())
+
+  @@map("transaction_checklists")
+}
+
+// ============================================================
+// REVIEWS & TESTIMONIALS
+// ============================================================
+
+model Review {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId        String?
+  rating        Int         // 1-5
+  title         String?
+  content       String
+  platform      String?     // google, zillow, facebook, etc.
+  isPublished   Boolean     @default(false)
+  publishedUrl  String?
+  aiSummary     String?     // AI-generated summary
+  sentiment     String?     // positive, neutral, negative
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("reviews")
+}
+
+// ============================================================
+// MARKETING POSTS (AI-generated)
+// ============================================================
+
+model MarketingPost {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId    String?
+  content       String
+  platform      MarketingPlatform
+  status        MarketingStatus @default(DRAFT)
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  engagementMetrics String? // JSON string with likes, shares, comments
+  aiGenerated   Boolean     @default(true)
+  imageUrl      String?
+  hashtags      String?     // JSON array stored as string
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("marketing_posts")
+}
+
+enum MarketingPlatform {
+  FACEBOOK
+  INSTAGRAM
+  TWITTER
+  LINKEDIN
+  ZILLOW
+  REDFIN
+  EMAIL
+  WEBSITE
+  OTHER
+}
+
+enum MarketingStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+// ============================================================
+// REPORTS (AI-generated analytics)
+// ============================================================
+
+model Report {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  type          ReportType
+  content       String      // AI-generated report content
+  summary       String?
+  dataRange     String?     // "last-30-days", "this-quarter", etc.
+  filters       String?     // JSON string of applied filters
+  generatedAt   DateTime    @default(now())
+  isStarred     Boolean     @default(false)
+
+  @@map("reports")
+}
+
+enum ReportType {
+  SALES_PERFORMANCE
+  LEAD_ANALYSIS
+  MARKET_TRENDS
+  COMPARATIVE_MARKET_ANALYSIS
+  CLIENT_ACTIVITY
+  REVENUE_SUMMARY
+  CUSTOM
+}
