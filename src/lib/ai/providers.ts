@@ -10,9 +10,10 @@ export type ProviderResult = {
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001";
 
-// "gemini-flash-latest" is Google's stable rolling alias for their current
-// fast model, so this doesn't need updating as dated model IDs get retired.
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
+// Pinned rather than an auto-updating alias: predictable cost/behavior for
+// the balanced price-performance tier. If Google eventually retires this
+// model, override with GEMINI_MODEL until the code default is updated.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 function splitSystemAndTurns(messages: ChatMessage[], extraSystem?: string) {
