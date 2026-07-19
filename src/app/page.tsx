@@ -57,18 +57,18 @@ const workstreams = [
 ];
 
 const modules = [
-  { name: "Inbox", icon: Inbox, href: "/dashboard/crm" },
+  { name: "Inbox", icon: Inbox, href: "/dashboard/inbox" },
   { name: "Leads", icon: Users, href: "/dashboard/leads" },
   { name: "Properties", icon: HomeIcon, href: "/dashboard/properties" },
   { name: "Showings", icon: KeyRound, href: "/dashboard/showings" },
-  { name: "Map", icon: MapPinned, href: "/dashboard/market-research" },
-  { name: "Follow-ups", icon: PhoneCall, href: "/dashboard/automations" },
-  { name: "AI matcher", icon: Sparkles, href: "/dashboard/matchmaker" },
-  { name: "Briefings", icon: MessageSquareText, href: "/dashboard/showing-assistant" },
-  { name: "Docs", icon: FileText, href: "/dashboard/documents" },
-  { name: "Campaigns", icon: Megaphone, href: "/dashboard/email-campaigns" },
-  { name: "Health", icon: Gauge, href: "/dashboard/reports" },
-  { name: "Security", icon: ShieldCheck, href: "/dashboard/integrations" },
+  { name: "Map", icon: MapPinned, href: "/dashboard/map" },
+  { name: "Follow-ups", icon: PhoneCall, href: "/dashboard/follow-ups" },
+  { name: "AI matcher", icon: Sparkles, href: "/dashboard/ai-matcher" },
+  { name: "Briefings", icon: MessageSquareText, href: "/dashboard/briefings" },
+  { name: "Docs", icon: FileText, href: "/dashboard/docs" },
+  { name: "Campaigns", icon: Megaphone, href: "/dashboard/campaigns" },
+  { name: "Health", icon: Gauge, href: "/dashboard/health" },
+  { name: "Security", icon: ShieldCheck, href: "/dashboard/security" },
 ];
 
 const recentActivity = [

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Plug, Upload, CheckCircle, X, ArrowRight, FileWarning } from 'lucide-react';
 
 type Integration = {
@@ -244,6 +245,10 @@ export default function IntegrationsPage() {
                 ) : (
                   <button onClick={() => setShowSlackModal(true)} className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Connect</button>
                 )
+              ) : integration.name === 'zillow' ? (
+                <Link href="/dashboard/zillow-bridge" className="inline-flex px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                  Open Bridge
+                </Link>
               ) : integration.isConfigured ? (
                 <button className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Connect</button>
               ) : (

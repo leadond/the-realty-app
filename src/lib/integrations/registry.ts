@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isBridgeConfigured } from "@/lib/integrations/bridge";
 
 export type IntegrationDef = {
   name: string;
@@ -34,8 +35,8 @@ export const INTEGRATIONS: IntegrationDef[] = [
   },
   {
     name: "zillow",
-    displayName: "Zillow / Realtor.com",
-    description: "Sync active listings and buyer inquiries. Requires a Zillow developer account (client ID/secret).",
+    displayName: "Zillow / Bridge",
+    description: "Retrieve Zillow Group data through Bridge: datasets, public records, Zestimates, and market metrics.",
     category: "data",
     canImport: true,
     canSync: true,
@@ -120,7 +121,7 @@ export function isIntegrationConfigured(name: string): boolean {
     case "slack":
       return true; // configured per-user via webhook URL, not env vars
     case "zillow":
-      return Boolean(process.env.ZILLOW_CLIENT_ID && process.env.ZILLOW_CLIENT_SECRET);
+      return isBridgeConfigured();
     case "docusign":
       return Boolean(process.env.DOCUSIGN_CLIENT_ID && process.env.DOCUSIGN_CLIENT_SECRET);
     case "meta":

@@ -44,6 +44,7 @@ const navItems = [
   { icon: UserCheck, label: "Client Portal", href: "/dashboard/clients" },
   { icon: FileCheck, label: "Documents", href: "/dashboard/documents" },
   { icon: Search, label: "Market Research", href: "/dashboard/market-research" },
+  { icon: Database, label: "Zillow / Bridge", href: "/dashboard/zillow-bridge" },
   { icon: TrendingUp, label: "Property Valuation", href: "/dashboard/valuation" },
   { icon: FileText, label: "Listing Generator", href: "/dashboard/listings" },
   { icon: Store, label: "Property Matchmaker", href: "/dashboard/matchmaker" },
