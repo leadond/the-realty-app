@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, Phone, Plus, SlidersHorizontal } from "lucide-react";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import CallButton from "@/components/CallButton";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,9 @@ export default async function LeadsPage() {
               >
                 <div>
                   <h2 className="font-semibold">
-                    {lead.firstName} {lead.lastName}
+                    <Link href={`/dashboard/leads/${lead.id}`} className="hover:text-[#17453b] hover:underline">
+                      {lead.firstName} {lead.lastName}
+                    </Link>
                   </h2>
                   <div className="mt-2 flex flex-wrap gap-3 text-sm text-[#58665e]">
                     {lead.email && (
@@ -80,10 +83,12 @@ export default async function LeadsPage() {
                       </span>
                     )}
                     {lead.phone && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Phone size={14} aria-hidden="true" />
-                        {lead.phone}
-                      </span>
+                      <CallButton
+                        leadId={lead.id}
+                        phoneNumber={lead.phone}
+                        contactName={`${lead.firstName} ${lead.lastName}`}
+                        className="inline-flex items-center gap-1.5 text-[#365d52] hover:text-[#17453b] hover:underline"
+                      />
                     )}
                   </div>
                 </div>

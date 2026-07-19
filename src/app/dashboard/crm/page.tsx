@@ -1,7 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Download, Upload, Search, Filter, Mail, Phone, Trash2, Plus, X } from 'lucide-react';
 import { RiskAlert } from '@/components/RiskAlert';
+import CallButton from '@/components/CallButton';
 
 type Lead = {
   id: string;
@@ -245,9 +247,19 @@ export default function CRMPage() {
             <tbody className="divide-y">
               {filtered.map(lead => (
                 <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{lead.firstName} {lead.lastName}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/dashboard/leads/${lead.id}`} className="hover:text-indigo-600 hover:underline">
+                      {lead.firstName} {lead.lastName}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-sm flex items-center gap-1"><Mail size={14} className="text-gray-400" /> {lead.email || '—'}</td>
-                  <td className="px-4 py-3 text-sm flex items-center gap-1"><Phone size={14} className="text-gray-400" /> {lead.phone || '—'}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {lead.phone ? (
+                      <CallButton leadId={lead.id} phoneNumber={lead.phone} contactName={`${lead.firstName} ${lead.lastName}`} className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline" />
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-gray-400"><Phone size={14} /> —</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm">{lead.source.replace('_', ' ')}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${

@@ -49,6 +49,7 @@ model User {
 
   aiUsage       AIUsage[]
   contracts     Contract[]       @relation("AgentContracts")
+  callLogs      CallLog[]
   emailTemplates EmailTemplate[]
   emailCampaigns EmailCampaign[]
   socialAccounts SocialAccount[]
@@ -204,12 +205,34 @@ model Lead {
 
   showings      Showing[]
   contracts     Contract[]
+  callLogs      CallLog[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([organizationId])
   @@index([userId])
   @@map("leads")
+}
+
+// ============================================================
+// CALL LOG (click-to-call from the app)
+// ============================================================
+
+model CallLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  phoneNumber String
+  calledAt    DateTime @default(now())
+  notes       String?
+  durationMin Int?
+
+  @@index([leadId])
+  @@index([userId])
+  @@map("call_logs")
 }
 
 enum LeadSource {
