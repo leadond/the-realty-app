@@ -20,6 +20,8 @@ import {
   Users,
 } from "lucide-react";
 
+import { auth } from "@/lib/auth";
+
 const metrics = [
   { label: "Active leads", value: "42", detail: "+8 this week" },
   { label: "Showings queued", value: "17", detail: "6 need briefings" },
@@ -76,7 +78,16 @@ const recentActivity = [
   "Prepared follow-up copy for two open house visitors.",
 ];
 
-export default function Home() {
+function moduleHref(href: string, isSignedIn: boolean) {
+  if (isSignedIn) return href;
+
+  return `/login?callbackUrl=${encodeURIComponent(href)}`;
+}
+
+export default async function Home() {
+  const session = await auth();
+  const isSignedIn = Boolean(session?.user?.id);
+
   return (
     <main className="min-h-screen bg-[#f7f5ef] text-[#17201b]">
       <div className="flex min-h-screen">
@@ -99,7 +110,7 @@ export default function Home() {
               return (
                 <Link
                   key={module.name}
-                  href={module.href}
+                  href={moduleHref(module.href, isSignedIn)}
                   className="flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-[#34433b] transition hover:bg-[#ebe5d8] hover:text-[#17201b]"
                 >
                   <Icon size={17} aria-hidden="true" />
@@ -130,7 +141,7 @@ export default function Home() {
                   API status
                 </Link>
                 <Link
-                  href="/dashboard/leads"
+                  href={moduleHref("/dashboard/leads", isSignedIn)}
                   className="inline-flex h-10 items-center gap-2 rounded-md bg-[#17453b] px-3 text-sm font-semibold text-white"
                 >
                   Open leads
