@@ -55,18 +55,18 @@ const workstreams = [
 ];
 
 const modules = [
-  { name: "Inbox", icon: Inbox },
-  { name: "Leads", icon: Users },
-  { name: "Properties", icon: HomeIcon },
-  { name: "Showings", icon: KeyRound },
-  { name: "Map", icon: MapPinned },
-  { name: "Follow-ups", icon: PhoneCall },
-  { name: "AI matcher", icon: Sparkles },
-  { name: "Briefings", icon: MessageSquareText },
-  { name: "Docs", icon: FileText },
-  { name: "Campaigns", icon: Megaphone },
-  { name: "Health", icon: Gauge },
-  { name: "Security", icon: ShieldCheck },
+  { name: "Inbox", icon: Inbox, href: "/dashboard/crm" },
+  { name: "Leads", icon: Users, href: "/dashboard/leads" },
+  { name: "Properties", icon: HomeIcon, href: "/dashboard/properties" },
+  { name: "Showings", icon: KeyRound, href: "/dashboard/showings" },
+  { name: "Map", icon: MapPinned, href: "/dashboard/market-research" },
+  { name: "Follow-ups", icon: PhoneCall, href: "/dashboard/automations" },
+  { name: "AI matcher", icon: Sparkles, href: "/dashboard/matchmaker" },
+  { name: "Briefings", icon: MessageSquareText, href: "/dashboard/showing-assistant" },
+  { name: "Docs", icon: FileText, href: "/dashboard/documents" },
+  { name: "Campaigns", icon: Megaphone, href: "/dashboard/email-campaigns" },
+  { name: "Health", icon: Gauge, href: "/dashboard/reports" },
+  { name: "Security", icon: ShieldCheck, href: "/dashboard/integrations" },
 ];
 
 const recentActivity = [
@@ -99,7 +99,7 @@ export default function Home() {
               return (
                 <Link
                   key={module.name}
-                  href={module.name === "Leads" ? "/dashboard/leads" : "#"}
+                  href={module.href}
                   className="flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-[#34433b] transition hover:bg-[#ebe5d8] hover:text-[#17201b]"
                 >
                   <Icon size={17} aria-hidden="true" />

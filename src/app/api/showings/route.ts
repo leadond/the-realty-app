@@ -3,6 +3,7 @@ import { ShowingStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { notifySlack } from "@/lib/integrations/slack";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -55,6 +56,8 @@ export async function POST(request: Request) {
       notes: body.notes ? String(body.notes) : null,
     },
   });
+
+  await notifySlack(user.id, `📅 Showing scheduled for *${new Date(showing.scheduledAt).toLocaleString()}*`);
 
   return NextResponse.json({ ok: true, showing }, { status: 201 });
 }

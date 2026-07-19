@@ -34,5 +34,8 @@ export const config = {
     "/api/integrations/:path*",
     "/api/import/:path*",
     "/api/org/:path*",
+    "/api/billing/checkout",
+    "/api/billing/portal",
+    "/api/account/:path*",
   ],
 };

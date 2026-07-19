@@ -208,6 +208,7 @@ model Lead {
   updatedAt     DateTime    @updatedAt
 
   @@index([organizationId])
+  @@index([userId])
   @@map("leads")
 }
 
@@ -306,6 +307,9 @@ model Showing {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  @@index([userId])
+  @@index([propertyId])
+  @@index([leadId])
   @@map("showings")
 }
 
@@ -355,6 +359,7 @@ model Property {
 
   @@index([city, state, zip])
   @@index([organizationId])
+  @@index([userId])
   @@map("properties")
 }
 
@@ -426,6 +431,8 @@ model OpenHouse {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  @@index([userId])
+  @@index([propertyId])
   @@map("open_houses")
 }
 
@@ -692,6 +699,8 @@ model Transaction {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  @@index([userId])
+  @@index([organizationId])
   @@map("transactions")
 }
 

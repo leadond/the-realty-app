@@ -4,6 +4,7 @@ import { LeadPriority, LeadSource, LeadStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { checkGlobalLeadRisk, recordLeadContactEvent } from "@/lib/lead-intelligence";
+import { notifySlack } from "@/lib/integrations/slack";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -71,6 +72,8 @@ export async function POST(request: Request) {
   if (risk.globalLeadId) {
     await recordLeadContactEvent(risk.globalLeadId, user.organizationId, user.id, "contacted");
   }
+
+  await notifySlack(user.id, `🆕 New lead: *${firstName} ${lastName}*${lead.location ? ` — ${lead.location}` : ""}${risk.riskLevel !== "GREEN" ? `\n⚠️ Risk level: ${risk.riskLevel}` : ""}`);
 
   return NextResponse.json({
     ok: true,

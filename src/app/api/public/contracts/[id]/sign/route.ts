@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { notifySlack } from "@/lib/integrations/slack";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -85,6 +86,10 @@ export async function POST(request: Request, context: RouteContext) {
       ? { status: "SIGNED", signedAt: new Date() }
       : { status: "PARTIALLY_SIGNED" },
   });
+
+  if (updated.status === "SIGNED") {
+    await notifySlack(contract.agentId, `✅ Contract fully signed: *${contract.title}* by ${contract.buyerName}`);
+  }
 
   return NextResponse.json({ ok: true, contract: { id: updated.id, status: updated.status } });
 }

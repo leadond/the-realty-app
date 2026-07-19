@@ -19,6 +19,7 @@ import {
   Radio,
   Search,
   Send,
+  Settings,
   Share2,
   Star,
   Store,
@@ -56,6 +57,7 @@ const navItems = [
   { icon: BarChart3, label: "Reports", href: "/dashboard/reports" },
   { icon: Calculator, label: "Mortgage Calc", href: "/dashboard/mortgage" },
   { icon: Plug, label: "Connected Apps", href: "/dashboard/integrations" },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
