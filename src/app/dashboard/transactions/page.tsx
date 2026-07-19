@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, CheckSquare, AlertCircle, Calendar, DollarSign, Home, FileText, Loader2 } from 'lucide-react';
+import { Plus, Trash2, CheckSquare, AlertCircle, Calendar, DollarSign, FileText } from 'lucide-react';
 
 type Transaction = {
   id: string;

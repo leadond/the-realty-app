@@ -6,7 +6,7 @@ Live at **https://the-realty-app.vercel.app**. All 6 phases of the original road
 
 ## Quick start for you
 
-1. Add environment variables in Vercel → Settings → Environment Variables (see `.env.example` for the full list with explanations). At minimum you already have `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `ANTHROPIC_API_KEY`.
+1. Add environment variables in Vercel → Settings → Environment Variables (see `.env.example` for the full list with explanations). At minimum you already have `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`.
 2. Log in at `/login` with **admin@realtor.com / admin123** (a real broker account with its own organization and demo data) — or register your own account at `/register`.
 3. Everything below "optional" in `.env.example` is genuinely optional: the app runs and every page works without it, with a clear in-app message telling you what to add if you try to use a feature that needs it.
 
@@ -20,7 +20,7 @@ All 15 original dashboard pages plus Properties (was missing — showings/open h
 - **Route protection.** `/dashboard` and every data API now require a valid session (previously wide open to anyone with the URL). Every `[id]` route (leads, showings, open houses, transactions, properties, contracts) checks the record actually belongs to the requesting user — previously any authenticated request could read/edit/delete any user's data by guessing an ID.
 - **Organizations & Broker Dashboard.** Brokers invite agents via a shareable link; a Broker Dashboard shows team performance, org-wide leads/listings, commission tracking, and pending contract signatures.
 - **Global lead intelligence.** Cross-brokerage risk scoring — flags buyers who've been contacted by many different agents/orgs, or who have a history of going quiet after contact. Surfaced live when adding a contact in the CRM.
-- **Cloud AI tiering.** Every AI call tries Anthropic first, falls back to Gemini automatically if configured and Anthropic errors, and is logged to a per-user monthly token budget by AI tier (Free/Pro/Enterprise).
+- **Cloud AI tiering.** Every AI call tries Gemini first (lower cost), falls back to Anthropic automatically if configured and Gemini errors, and is logged to a per-user monthly token budget by AI tier (Free/Pro/Enterprise).
 - **Contracts & e-signature**, fully self-hosted (no DocuSign needed for your own agreements): template library, canvas signature capture, a public unauthenticated signing link so buyers/sellers can sign without creating an account, signed-PDF export.
 
 ### Phase 2 — Agent tools (complete)
@@ -48,10 +48,10 @@ See `.env.example` for the complete, commented list. Summary:
 
 | Required | Optional (feature-gated) |
 |---|---|
-| `DATABASE_URL` | `GEMINI_API_KEY` — AI fallback |
+| `DATABASE_URL` | `ANTHROPIC_API_KEY` — AI fallback if Gemini errors |
 | `NEXTAUTH_SECRET` | `RESEND_API_KEY` — email sending |
 | `NEXTAUTH_URL` | `CRON_SECRET` — protects the automation cron endpoint |
-| `ANTHROPIC_API_KEY` | `STRIPE_SECRET_KEY` + price IDs — billing |
+| `GEMINI_API_KEY` | `STRIPE_SECRET_KEY` + price IDs — billing |
 | | `ZILLOW_*`, `DOCUSIGN_*`, `META_*`, `TIKTOK_*`, `LINKEDIN_*` — Phase 4 OAuth connectors |
 
 ## Known simplifications (documented, not hidden)
