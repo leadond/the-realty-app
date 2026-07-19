@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ShowingStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -11,7 +11,9 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown, 
 }
 
 export async function GET() {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const showings = await prisma.showing.findMany({
     where: { userId: user.id },
     orderBy: { scheduledAt: "asc" },
@@ -22,7 +24,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const body = await request.json();
 
   if (!body.scheduledAt || !body.propertyId) {
@@ -30,6 +34,14 @@ export async function POST(request: Request) {
       { ok: false, error: "scheduledAt and propertyId are required" },
       { status: 400 },
     );
+  }
+
+  const property = await prisma.property.findFirst({
+    where: { id: String(body.propertyId), userId: user.id },
+    select: { id: true },
+  });
+  if (!property) {
+    return NextResponse.json({ ok: false, error: "Property not found" }, { status: 400 });
   }
 
   const showing = await prisma.showing.create({

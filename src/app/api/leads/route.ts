@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { LeadPriority, LeadSource, LeadStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
+import { checkGlobalLeadRisk, recordLeadContactEvent } from "@/lib/lead-intelligence";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -11,7 +12,9 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown, 
 }
 
 export async function GET() {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const leads = await prisma.lead.findMany({
     where: { userId: user.id },
     orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
@@ -21,7 +24,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const body = await request.json();
 
   if (!body.firstName || !body.lastName) {
@@ -31,13 +36,21 @@ export async function POST(request: Request) {
     );
   }
 
+  const firstName = String(body.firstName);
+  const lastName = String(body.lastName);
+  const email = body.email ? String(body.email) : null;
+  const phone = body.phone ? String(body.phone) : null;
+
+  const risk = await checkGlobalLeadRisk(firstName, lastName, email, phone);
+
   const lead = await prisma.lead.create({
     data: {
       userId: user.id,
-      firstName: String(body.firstName),
-      lastName: String(body.lastName),
-      email: body.email ? String(body.email) : null,
-      phone: body.phone ? String(body.phone) : null,
+      organizationId: user.organizationId,
+      firstName,
+      lastName,
+      email,
+      phone,
       source: parseEnum(LeadSource, body.source, LeadSource.WEBSITE),
       status: parseEnum(LeadStatus, body.status, LeadStatus.NEW),
       priority: parseEnum(LeadPriority, body.priority, LeadPriority.MEDIUM),
@@ -49,8 +62,19 @@ export async function POST(request: Request) {
       location: body.location ? String(body.location) : null,
       timeline: body.timeline ? String(body.timeline) : null,
       notes: body.notes ? String(body.notes) : null,
+      riskScore: risk.riskScore,
+      riskLevel: risk.riskLevel,
+      riskWarnings: risk.warnings.join("; ") || null,
     },
   });
 
-  return NextResponse.json({ ok: true, lead }, { status: 201 });
+  if (risk.globalLeadId) {
+    await recordLeadContactEvent(risk.globalLeadId, user.organizationId, user.id, "contacted");
+  }
+
+  return NextResponse.json({
+    ok: true,
+    lead,
+    riskAlert: risk.riskLevel !== "GREEN" ? risk : null,
+  }, { status: 201 });
 }

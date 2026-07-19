@@ -1,5 +1,8 @@
 import NextAuth, { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+
+import { prisma } from "@/lib/db";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -13,18 +16,21 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (
-          credentials?.email === "admin@realtor.com" &&
-          credentials?.password === "admin123"
-        ) {
-          return {
-            id: "local-admin",
-            name: "Admin",
-            email: "admin@realtor.com",
-          };
-        }
+        const email = credentials?.email?.toLowerCase().trim();
+        const password = credentials?.password;
+        if (!email || !password) return null;
 
-        return null;
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.password) return null;
+
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        };
       },
     }),
   ],
@@ -41,9 +47,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as typeof session.user & { id: string }).id = String(
-          token.id ?? "local-admin",
-        );
+        session.user.id = String(token.id);
       }
 
       return session;
@@ -57,4 +61,8 @@ export function auth() {
 
 export function createAuthHandler() {
   return NextAuth(authOptions);
+}
+
+export async function hashPassword(password: string) {
+  return bcrypt.hash(password, 12);
 }

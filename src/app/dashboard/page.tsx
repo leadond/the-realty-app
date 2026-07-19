@@ -1,7 +1,8 @@
+import { redirect } from "next/navigation";
 import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,9 @@ const cards = [
 ];
 
 export default async function DashboardPage() {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   const [leads, showings, properties] = await Promise.all([
     prisma.lead.count({ where: { userId: user.id } }),
     prisma.showing.count({ where: { userId: user.id } }),
@@ -35,9 +38,11 @@ export default async function DashboardPage() {
   return (
     <div className="px-5 py-6 md:px-8">
       <header className="mb-6">
-        <p className="text-sm font-medium text-[#6b4f2a]">Live local database</p>
+        <p className="text-sm font-medium text-[#6b4f2a]">
+          {user.organization ? user.organization.name : "Your workspace"}
+        </p>
         <h1 className="mt-1 text-3xl font-semibold tracking-normal">
-          Operations dashboard
+          Welcome back, {user.name?.split(" ")[0] || "there"}
         </h1>
       </header>
 

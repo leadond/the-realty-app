@@ -1,57 +1,80 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   BarChart3,
   Bell,
   Briefcase,
+  Building2,
   Calendar,
   Calculator,
   Database,
   FileCheck,
+  FileSignature,
   FileText,
   Home,
   HousePlus,
   Mail,
   MapPin,
+  Plug,
   Radio,
   Search,
+  Send,
   Star,
   Store,
   TrendingUp,
   UserCheck,
   Users,
+  Workflow,
 } from "lucide-react";
+
+import { getCurrentUser } from "@/lib/current-user";
+import SignOutButton from "@/components/SignOutButton";
 
 const navItems = [
   { icon: Home, label: "Dashboard", href: "/dashboard" },
   { icon: Users, label: "Lead Tracker", href: "/dashboard/leads" },
-  { icon: Calendar, label: "Showings", href: "/dashboard/showings" },
+  { icon: Building2, label: "Properties", href: "/dashboard/properties" },
   { icon: Database, label: "CRM", href: "/dashboard/crm" },
+  { icon: Calendar, label: "Showings", href: "/dashboard/showings" },
+  { icon: HousePlus, label: "Open Houses", href: "/dashboard/open-houses" },
+  { icon: Briefcase, label: "Transactions", href: "/dashboard/transactions" },
+  { icon: FileSignature, label: "Contracts", href: "/dashboard/contracts" },
+  { icon: UserCheck, label: "Client Portal", href: "/dashboard/clients" },
+  { icon: FileCheck, label: "Documents", href: "/dashboard/documents" },
   { icon: Search, label: "Market Research", href: "/dashboard/market-research" },
   { icon: TrendingUp, label: "Property Valuation", href: "/dashboard/valuation" },
   { icon: FileText, label: "Listing Generator", href: "/dashboard/listings" },
-  { icon: Mail, label: "Email Templates", href: "/dashboard/email-templates" },
-  { icon: MapPin, label: "Showing Assistant", href: "/dashboard/showing-assistant" },
   { icon: Store, label: "Property Matchmaker", href: "/dashboard/matchmaker" },
+  { icon: MapPin, label: "Showing Assistant", href: "/dashboard/showing-assistant" },
   { icon: Radio, label: "Marketing", href: "/dashboard/marketing" },
+  { icon: Mail, label: "Email Templates", href: "/dashboard/email-templates" },
+  { icon: Send, label: "Email Campaigns", href: "/dashboard/email-campaigns" },
   { icon: Star, label: "Reviews", href: "/dashboard/reviews" },
-  { icon: Calculator, label: "Mortgage Calc", href: "/dashboard/mortgage" },
+  { icon: Workflow, label: "Automations", href: "/dashboard/automations" },
   { icon: BarChart3, label: "Reports", href: "/dashboard/reports" },
-  { icon: HousePlus, label: "Open Houses", href: "/dashboard/open-houses" },
-  { icon: Briefcase, label: "Transactions", href: "/dashboard/transactions" },
-  { icon: UserCheck, label: "Client Portal", href: "/dashboard/clients" },
-  { icon: FileCheck, label: "Documents", href: "/dashboard/documents" },
+  { icon: Calculator, label: "Mortgage Calc", href: "/dashboard/mortgage" },
+  { icon: Plug, label: "Connected Apps", href: "/dashboard/integrations" },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const items = user.role === "BROKER"
+    ? [...navItems, { icon: Briefcase, label: "Broker Dashboard", href: "/dashboard/broker" }]
+    : navItems;
+
   return (
     <div className="flex min-h-screen bg-[#f7f5ef] text-[#17201b]">
-      <aside className="hidden w-72 shrink-0 border-r border-[#d8d1c2] bg-[#fcfbf7] lg:block">
+      <aside className="hidden w-72 shrink-0 border-r border-[#d8d1c2] bg-[#fcfbf7] lg:flex lg:flex-col">
         <div className="border-b border-[#d8d1c2] p-5">
-          <h1 className="text-xl font-semibold">Realtor AI</h1>
-          <p className="mt-1 text-sm text-[#58665e]">Local demo workspace</p>
+          <h1 className="text-xl font-semibold">The Realty App</h1>
+          <p className="mt-1 text-sm text-[#58665e] truncate">
+            {user.organization?.name || user.name || user.email}
+          </p>
         </div>
-        <nav className="p-3" aria-label="Dashboard modules">
-          {navItems.map((item) => (
+        <nav className="flex-1 overflow-y-auto p-3" aria-label="Dashboard modules">
+          {items.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -62,11 +85,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           ))}
         </nav>
+        <div className="border-t border-[#d8d1c2] p-3">
+          <SignOutButton />
+        </div>
       </aside>
       <main className="flex-1 overflow-y-auto">
         <div className="border-b border-[#d8d1c2] bg-[#fcfbf7] px-5 py-4 lg:hidden">
           <div className="flex items-center justify-between">
-            <h1 className="font-semibold">Realtor AI</h1>
+            <h1 className="font-semibold">The Realty App</h1>
             <Bell className="h-5 w-5 text-[#58665e]" aria-hidden="true" />
           </div>
         </div>

@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "UserRole" ADD VALUE 'AGENT';
+ALTER TYPE "UserRole" ADD VALUE 'BROKER';

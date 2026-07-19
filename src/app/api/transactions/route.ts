@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { TransactionType, TransactionStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -11,7 +11,9 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown, 
 }
 
 export async function GET() {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const transactions = await prisma.transaction.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
@@ -21,12 +23,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const body = await request.json();
 
   const transaction = await prisma.transaction.create({
     data: {
       userId: user.id,
+      organizationId: user.organizationId,
       propertyId: body.propertyId ? String(body.propertyId) : null,
       type: parseEnum(TransactionType, body.type, TransactionType.PURCHASE),
       status: parseEnum(TransactionStatus, body.status, TransactionStatus.INITIATED),

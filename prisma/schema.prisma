@@ -17,11 +17,19 @@ model User {
   email         String           @unique
   emailVerified DateTime?
   image         String?
-  password      String?
+  password      String?          // bcrypt hash
   phone         String?
   licenseNumber String?
   brokerage     String?
   role          UserRole         @default(USER)
+
+  organizationId String?
+  organization   Organization?   @relation("OrgMembers", fields: [organizationId], references: [id], onDelete: SetNull)
+  brokerOf       Organization?   @relation("OrgBroker")
+
+  aiTier            AITier      @default(FREE)
+  monthlyTokenLimit Int         @default(20000)
+
   subscription  Subscription?
   leads         Lead[]
   showings      Showing[]
@@ -38,6 +46,18 @@ model User {
   reviews       Review[]
   marketingPosts MarketingPost[]
   reports       Report[]
+
+  aiUsage       AIUsage[]
+  contracts     Contract[]       @relation("AgentContracts")
+  emailTemplates EmailTemplate[]
+  emailCampaigns EmailCampaign[]
+  socialAccounts SocialAccount[]
+  socialPosts   SocialPost[]
+  automationRules AutomationRule[]
+  appConnections UserAppConnection[]
+  importJobs    ImportJob[]
+  sentInvites   OrgInvite[]      @relation("InviteSender")
+
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -45,12 +65,72 @@ model User {
 }
 
 enum UserRole {
-  USER
-  ADMIN
+  USER    // individual / demo, no org
+  AGENT   // belongs to an organization
+  BROKER  // owns/administers an organization
+  ADMIN   // platform admin
+}
+
+enum AITier {
+  FREE
+  PRO
+  ENTERPRISE
 }
 
 // ============================================================
-// SUBSCRIPTIONS / BILLING
+// ORGANIZATIONS (brokerages / teams)
+// ============================================================
+
+model Organization {
+  id            String      @id @default(cuid())
+  name          String
+  domain        String?     @unique
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zip           String?
+
+  members       User[]      @relation("OrgMembers")
+  brokerUserId  String?     @unique
+  brokerUser    User?       @relation("OrgBroker", fields: [brokerUserId], references: [id], onDelete: SetNull)
+
+  plan          String      @default("starter") // starter, professional, enterprise
+  billingStatus String      @default("active")  // active, past_due, canceled
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  invites       OrgInvite[]
+  contracts     Contract[]
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("organizations")
+}
+
+model OrgInvite {
+  id            String      @id @default(cuid())
+  organizationId String
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  email         String
+  role          UserRole    @default(AGENT)
+  token         String      @unique
+  status        String      @default("PENDING") // PENDING, ACCEPTED, EXPIRED, REVOKED
+
+  invitedById   String
+  invitedBy     User        @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime    @default(now())
+  expiresAt     DateTime
+
+  @@index([email])
+  @@map("org_invites")
+}
+
+// ============================================================
+// SUBSCRIPTIONS / BILLING (individual tier)
 // ============================================================
 
 model Subscription {
@@ -71,6 +151,28 @@ model Subscription {
 }
 
 // ============================================================
+// AI USAGE TRACKING
+// ============================================================
+
+model AIUsage {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  model         String
+  inputTokens   Int         @default(0)
+  outputTokens  Int         @default(0)
+  totalTokens   Int         @default(0)
+  costUSD       Float       @default(0)
+  feature       String?     // which page/feature triggered this call
+
+  createdAt     DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@map("ai_usage")
+}
+
+// ============================================================
 // CRM - LEADS
 // ============================================================
 
@@ -78,6 +180,7 @@ model Lead {
   id            String      @id @default(cuid())
   userId        String
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
   firstName     String
   lastName      String
   email         String?
@@ -94,10 +197,17 @@ model Lead {
   timeline      String? // immediate, 1-3 months, 3-6 months, 6+ months
   notes         String?
   tags          String?     // JSON array stored as string
+
+  riskScore     Float?
+  riskLevel     String?     // GREEN, YELLOW, RED
+  riskWarnings  String?     // semicolon-separated
+
   showings      Showing[]
+  contracts     Contract[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  @@index([organizationId])
   @@map("leads")
 }
 
@@ -129,6 +239,50 @@ enum LeadPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+// ============================================================
+// GLOBAL LEAD INTELLIGENCE (cross-org risk signals)
+// ============================================================
+
+model GlobalLeadRecord {
+  id            String      @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+
+  contacts      LeadContactEvent[]
+
+  riskScore     Float       @default(0)
+  contactCount  Int         @default(0)
+  organizationCount Int     @default(0)
+
+  firstContact  DateTime    @default(now())
+  lastContact   DateTime    @default(now())
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@map("global_lead_records")
+}
+
+model LeadContactEvent {
+  id            String      @id @default(cuid())
+  globalLeadId  String
+  globalLead    GlobalLeadRecord @relation(fields: [globalLeadId], references: [id], onDelete: Cascade)
+
+  organizationId String?    // null for individual/demo users
+  agentId       String
+
+  actionType    String      // "contacted", "showed_property", "made_offer", "ghosted"
+
+  timestamp     DateTime    @default(now())
+
+  @@index([globalLeadId])
+  @@map("lead_contact_events")
 }
 
 // ============================================================
@@ -171,6 +325,7 @@ model Property {
   id            String      @id @default(cuid())
   userId        String
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
   mlsId         String?     @unique
   address       String
   city          String
@@ -199,6 +354,7 @@ model Property {
   updatedAt     DateTime    @updatedAt
 
   @@index([city, state, zip])
+  @@index([organizationId])
   @@map("properties")
 }
 
@@ -521,6 +677,7 @@ model Transaction {
   id            String      @id @default(cuid())
   userId        String
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
   leadId        String?
   propertyId    String?
   type          TransactionType @default(PURCHASE)
@@ -598,7 +755,7 @@ model Review {
 }
 
 // ============================================================
-// MARKETING POSTS (AI-generated)
+// MARKETING POSTS (one-off AI-generated copy, Phase 1)
 // ============================================================
 
 model MarketingPost {
@@ -669,4 +826,337 @@ enum ReportType {
   CLIENT_ACTIVITY
   REVENUE_SUMMARY
   CUSTOM
+}
+
+// ============================================================
+// CONTRACTS & E-SIGNATURE (self-hosted, no external provider)
+// ============================================================
+
+model Contract {
+  id            String      @id @default(cuid())
+  organizationId String?
+  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  agentId       String
+  agent         User        @relation("AgentContracts", fields: [agentId], references: [id], onDelete: Cascade)
+
+  leadId        String?
+  lead          Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  type          ContractType
+  title         String
+  buyerName     String
+  buyerEmail    String?
+  content       String      // rendered contract text (from template + variables)
+  documentUrl   String?     // generated PDF, base64 or storage URL
+
+  signatures    ContractSignature[]
+
+  status        ContractStatus @default(DRAFT)
+  createdAt     DateTime    @default(now())
+  signedAt      DateTime?
+  expiresAt     DateTime?
+
+  @@index([organizationId])
+  @@index([agentId])
+  @@map("contracts")
+}
+
+enum ContractType {
+  BUYER_REPRESENTATION
+  SELLER_REPRESENTATION
+  DUAL_AGENCY
+  COMMISSION_AGREEMENT
+  INSPECTION_WAIVER
+  CONTINGENCY_REMOVAL
+  EARNEST_MONEY
+  CUSTOM
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT_FOR_SIGNATURE
+  PARTIALLY_SIGNED
+  SIGNED
+  REJECTED
+  EXPIRED
+  ARCHIVED
+}
+
+model ContractSignature {
+  id            String      @id @default(cuid())
+  contractId    String
+  contract      Contract    @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  signer        String
+  email         String
+  role          String      // buyer, seller, agent, witness
+
+  signatureData String?     // base64 PNG of drawn signature
+  signedAt      DateTime?
+  ipAddress     String?
+
+  @@map("contract_signatures")
+}
+
+// ============================================================
+// EMAIL MARKETING (Phase 2A)
+// ============================================================
+
+model EmailTemplate {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  subject       String
+  body          String      // HTML or plain text with {{placeholders}}
+  category      String?     // new-listing, open-house, follow-up, market-update, holiday, custom
+
+  campaigns     EmailCampaign[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("email_templates")
+}
+
+model EmailCampaign {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  templateId    String?
+  template      EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  name          String
+  subject       String
+  body          String
+  segment       String      // JSON filter: {"status": "QUALIFIED"} etc, stored as string
+
+  status        String      @default("DRAFT") // DRAFT, SCHEDULED, SENDING, SENT, FAILED
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+
+  sends         EmailSend[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("email_campaigns")
+}
+
+model EmailSend {
+  id            String      @id @default(cuid())
+  campaignId    String
+  campaign      EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  leadId        String?
+  recipientEmail String
+  status        String      @default("PENDING") // PENDING, SENT, FAILED, OPENED, CLICKED, BOUNCED
+  providerMessageId String?
+  errorMessage  String?
+
+  sentAt        DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+
+  @@index([campaignId])
+  @@map("email_sends")
+}
+
+// ============================================================
+// SOCIAL MEDIA SCHEDULING (Phase 2B)
+// ============================================================
+
+model SocialAccount {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform      String      // facebook, instagram, tiktok, linkedin
+  accountName   String?
+  accessToken   String?     // encrypted / env-gated, null until OAuth configured
+  refreshToken  String?
+  tokenExpires  DateTime?
+  isConnected   Boolean     @default(false)
+
+  posts         SocialPost[]
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, platform])
+  @@map("social_accounts")
+}
+
+model SocialPost {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  socialAccountId String?
+  socialAccount SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+
+  propertyId    String?
+  platform      String      // facebook, instagram, tiktok, linkedin
+  caption       String
+  imageUrl      String?
+
+  status        String      @default("DRAFT") // DRAFT, SCHEDULED, POSTED, FAILED
+  scheduledFor  DateTime?
+  postedAt      DateTime?
+  externalPostId String?
+  errorMessage  String?
+
+  engagementLikes Int       @default(0)
+  engagementComments Int    @default(0)
+  engagementShares Int      @default(0)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userId, scheduledFor])
+  @@map("social_posts")
+}
+
+// ============================================================
+// LEAD FOLLOW-UP AUTOMATION (Phase 2C)
+// ============================================================
+
+model AutomationRule {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  isActive      Boolean     @default(true)
+
+  triggerType   String      // lead_status_changed, showing_scheduled, no_response_days, open_house_visitor
+  triggerConfig String      // JSON string, e.g. {"status":"CONTACTED"} or {"days":5}
+
+  actionType    String      // send_email, create_reminder, send_sms (sms not wired without provider)
+  actionConfig  String      // JSON string, e.g. {"templateId":"..."} or {"message":"..."}
+
+  executions    AutomationExecution[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("automation_rules")
+}
+
+model AutomationExecution {
+  id            String      @id @default(cuid())
+  ruleId        String
+  rule          AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  leadId        String?
+  status        String      @default("PENDING") // PENDING, EXECUTED, FAILED, SKIPPED
+  result        String?
+
+  executedAt    DateTime    @default(now())
+
+  @@index([ruleId])
+  @@map("automation_executions")
+}
+
+// ============================================================
+// APP INTEGRATION FRAMEWORK (Phase 3 + 4)
+// ============================================================
+
+model AppIntegration {
+  id                String   @id @default(cuid())
+  name              String   @unique  // "zillow", "docusign", "slack", "csv"
+  displayName       String
+  description       String
+  category          String   // data, signature, email, social, notification
+
+  oauthProvider     String?
+  oauthAuthorizeUrl String?
+  oauthTokenUrl     String?
+  oauthScopes       String[] @default([])
+
+  canImport         Boolean  @default(false)
+  canSync           Boolean  @default(false)
+  requiresCredentials Boolean @default(true) // false for CSV, which needs no external account
+
+  isActive          Boolean  @default(true)
+  supportLevel      String   @default("BETA") // OFFICIAL, BETA, COMMUNITY
+
+  connections       UserAppConnection[]
+  importJobs        ImportJob[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("app_integrations")
+}
+
+model UserAppConnection {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  integrationId     String
+  integration       AppIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  accessToken       String?  // encrypted at rest recommended for prod; env-gated for now
+  refreshToken      String?
+  tokenExpires      DateTime?
+  webhookUrl        String?  // for Slack-style incoming webhooks (no OAuth needed)
+
+  isActive          Boolean  @default(true)
+  lastSyncAt        DateTime?
+  syncStatus        String   @default("IDLE") // IDLE, SYNCING, ERROR, SUCCESS
+  syncError         String?
+
+  connectedAt       DateTime @default(now())
+  disconnectedAt    DateTime?
+
+  @@unique([userId, integrationId])
+  @@map("user_app_connections")
+}
+
+model ImportMap {
+  id                String   @id @default(cuid())
+  targetModel       String   // "Lead", "Property"
+  externalField     String
+  yourField         String
+  fallbackValue     String?
+
+  @@map("import_maps")
+}
+
+model ImportJob {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  integrationId     String?
+  integration       AppIntegration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+
+  status            String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  sourceType        String   @default("manual_csv")
+  totalRecords      Int      @default(0)
+  recordsImported   Int      @default(0)
+  recordsSkipped    Int      @default(0)
+  recordsErrored    Int      @default(0)
+
+  errors            ImportError[]
+
+  startedAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  @@index([userId, status])
+  @@map("import_jobs")
+}
+
+model ImportError {
+  id                String   @id @default(cuid())
+  jobId             String
+  job               ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  recordNumber      Int
+  errorMessage      String
+
+  createdAt         DateTime @default(now())
+
+  @@index([jobId])
+  @@map("import_errors")
 }

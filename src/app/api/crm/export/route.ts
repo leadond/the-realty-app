@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 export async function GET() {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const leads = await prisma.lead.findMany({
     where: { userId: user.id },
     orderBy: { updatedAt: "desc" },

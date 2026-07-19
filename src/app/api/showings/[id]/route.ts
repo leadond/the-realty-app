@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ShowingStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -15,10 +15,12 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown) 
 }
 
 export async function GET(_request: Request, context: RouteContext) {
-  await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
-  const showing = await prisma.showing.findUnique({
-    where: { id },
+  const showing = await prisma.showing.findFirst({
+    where: { id, userId: user.id },
     include: { property: true, lead: true },
   });
 
@@ -30,8 +32,13 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
+  const owned = await prisma.showing.findFirst({ where: { id, userId: user.id }, select: { id: true } });
+  if (!owned) return NextResponse.json({ ok: false, error: "Showing not found" }, { status: 404 });
+
   const body = await request.json();
 
   const showing = await prisma.showing.update({
@@ -49,8 +56,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
+  const owned = await prisma.showing.findFirst({ where: { id, userId: user.id }, select: { id: true } });
+  if (!owned) return NextResponse.json({ ok: false, error: "Showing not found" }, { status: 404 });
+
   await prisma.showing.delete({ where: { id } });
 
   return NextResponse.json({ ok: true });

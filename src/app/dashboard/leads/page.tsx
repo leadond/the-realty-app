@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft, Mail, Phone, Plus, SlidersHorizontal } from "lucide-react";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,9 @@ function money(value: number | null) {
 }
 
 export default async function LeadsPage() {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   const leads = await prisma.lead.findMany({
     where: { userId: user.id },
     orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
@@ -34,14 +37,20 @@ export default async function LeadsPage() {
             </h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="inline-flex h-10 items-center gap-2 rounded-md border border-[#b8ad99] bg-white px-3 text-sm font-semibold">
+            <Link
+              href="/dashboard/crm"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#b8ad99] bg-white px-3 text-sm font-semibold"
+            >
               <SlidersHorizontal size={16} aria-hidden="true" />
-              Filters
-            </button>
-            <button className="inline-flex h-10 items-center gap-2 rounded-md bg-[#17453b] px-3 text-sm font-semibold text-white">
+              Search &amp; Filter
+            </Link>
+            <Link
+              href="/dashboard/crm"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-[#17453b] px-3 text-sm font-semibold text-white"
+            >
               <Plus size={16} aria-hidden="true" />
               Add lead
-            </button>
+            </Link>
           </div>
         </header>
 

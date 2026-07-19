@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Download, Upload, Search, Filter, Mail, Phone, Trash2 } from 'lucide-react';
+import { Download, Upload, Search, Filter, Mail, Phone, Trash2, Plus, X } from 'lucide-react';
+import { RiskAlert } from '@/components/RiskAlert';
 
 type Lead = {
   id: string;
@@ -14,12 +15,26 @@ type Lead = {
   notes?: string;
 };
 
+type RiskInfo = {
+  riskLevel: 'GREEN' | 'YELLOW' | 'RED';
+  riskScore: number;
+  warnings: string[];
+  contactedByOrgs: number;
+  contactedByAgents: number;
+};
+
+const emptyForm = { firstName: '', lastName: '', email: '', phone: '', source: 'WEBSITE', status: 'NEW', priority: 'MEDIUM', notes: '' };
+
 export default function CRMPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [importing, setImporting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [riskAlert, setRiskAlert] = useState<RiskInfo | null>(null);
 
   const loadLeads = async () => {
     setLoading(true);
@@ -52,6 +67,32 @@ export default function CRMPage() {
       cancelled = true;
     };
   }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setRiskAlert(null);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setForm(emptyForm);
+        if (data.riskAlert) {
+          setRiskAlert(data.riskAlert);
+        } else {
+          setShowForm(false);
+        }
+        loadLeads();
+      }
+    } catch (e) {
+      console.error('Failed to create lead', e);
+    }
+    setSaving(false);
+  };
 
   const handleExport = () => {
     window.open('/api/crm/export', '_blank');
@@ -90,10 +131,13 @@ export default function CRMPage() {
   if (loading) return <div className="p-6">Loading CRM...</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold">CRM</h1>
         <div className="flex gap-2">
+          <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+            <Plus size={16} /> Add Contact
+          </button>
           <label className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 cursor-pointer">
             <Upload size={16} /> Import CSV
             <input type="file" accept=".csv" onChange={handleImport} className="hidden" disabled={importing} />
@@ -103,6 +147,55 @@ export default function CRMPage() {
           </button>
         </div>
       </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => { setShowForm(false); setRiskAlert(null); }}>
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Add Contact</h2>
+              <button onClick={() => { setShowForm(false); setRiskAlert(null); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+
+            {riskAlert && <div className="mb-4"><RiskAlert risk={riskAlert} /></div>}
+
+            <form onSubmit={handleCreate} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-sm font-medium mb-1">First Name</label><input required type="text" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} className="w-full px-3 py-2 border rounded-lg" /></div>
+                <div><label className="block text-sm font-medium mb-1">Last Name</label><input required type="text" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} className="w-full px-3 py-2 border rounded-lg" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-sm font-medium mb-1">Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 border rounded-lg" /></div>
+                <div><label className="block text-sm font-medium mb-1">Phone</label><input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 border rounded-lg" /></div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Source</label>
+                  <select value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                    <option>WEBSITE</option><option>REFERRAL</option><option>SOCIAL_MEDIA</option><option>OPEN_HOUSE</option><option>COLD_CALL</option><option>ZILLOW</option><option>REDFIN</option><option>OTHER</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                    <option>NEW</option><option>CONTACTED</option><option>QUALIFIED</option><option>ACTIVE</option><option>NEGOTIATING</option><option>WON</option><option>LOST</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Priority</label>
+                  <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                    <option>LOW</option><option>MEDIUM</option><option>HIGH</option><option>URGENT</option>
+                  </select>
+                </div>
+              </div>
+              <div><label className="block text-sm font-medium mb-1">Notes</label><textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={2} /></div>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" disabled={saving} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save Contact'}</button>
+                <button type="button" onClick={() => { setShowForm(false); setRiskAlert(null); }} className="px-4 py-2 bg-gray-200 rounded-lg">Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-4">
         <div className="flex-1 relative">

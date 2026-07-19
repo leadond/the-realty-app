@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { TransactionType, TransactionStatus } from "@prisma/client";
+import { PropertyListingStatus, PropertyTypeEnum } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
@@ -17,12 +17,9 @@ export async function GET(_request: Request, context: RouteContext) {
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
   const { id } = await context.params;
-  const transaction = await prisma.transaction.findFirst({
-    where: { id, userId: user.id },
-    include: { checklist: true },
-  });
-  if (!transaction) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
-  return NextResponse.json({ ok: true, transaction });
+  const property = await prisma.property.findFirst({ where: { id, userId: user.id } });
+  if (!property) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  return NextResponse.json({ ok: true, property });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -30,22 +27,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
   const { id } = await context.params;
-  const owned = await prisma.transaction.findFirst({ where: { id, userId: user.id }, select: { id: true } });
+  const owned = await prisma.property.findFirst({ where: { id, userId: user.id }, select: { id: true } });
   if (!owned) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
 
   const body = await request.json();
-  const transaction = await prisma.transaction.update({
+  const property = await prisma.property.update({
     where: { id },
     data: {
-      type: parseEnum(TransactionType, body.type),
-      status: parseEnum(TransactionStatus, body.status),
+      address: body.address === undefined ? undefined : String(body.address),
+      city: body.city === undefined ? undefined : String(body.city),
+      state: body.state === undefined ? undefined : String(body.state),
+      zip: body.zip === undefined ? undefined : String(body.zip),
       price: body.price === undefined ? undefined : Number(body.price),
-      closingDate: body.closingDate ? new Date(body.closingDate) : undefined,
-      commission: body.commission === undefined ? undefined : Number(body.commission),
-      agentNotes: body.agentNotes === undefined ? undefined : String(body.agentNotes),
+      bedrooms: body.bedrooms === undefined ? undefined : Number(body.bedrooms),
+      bathrooms: body.bathrooms === undefined ? undefined : Number(body.bathrooms),
+      sqft: body.sqft === undefined ? undefined : body.sqft ? Number(body.sqft) : null,
+      status: parseEnum(PropertyListingStatus, body.status),
+      propertyType: parseEnum(PropertyTypeEnum, body.propertyType),
+      description: body.description === undefined ? undefined : body.description ? String(body.description) : null,
     },
   });
-  return NextResponse.json({ ok: true, transaction });
+  return NextResponse.json({ ok: true, property });
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
@@ -53,9 +55,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
   const { id } = await context.params;
-  const owned = await prisma.transaction.findFirst({ where: { id, userId: user.id }, select: { id: true } });
+  const owned = await prisma.property.findFirst({ where: { id, userId: user.id }, select: { id: true } });
   if (!owned) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
 
-  await prisma.transaction.delete({ where: { id } });
+  await prisma.property.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { InterestLevel } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -13,8 +13,13 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown, 
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
+  const owned = await prisma.openHouse.findFirst({ where: { id, userId: user.id }, select: { id: true } });
+  if (!owned) return NextResponse.json({ ok: false, error: "Open house not found" }, { status: 404 });
+
   const body = await request.json();
 
   if (!body.firstName || !body.lastName) {
@@ -32,6 +37,7 @@ export async function POST(request: Request, context: RouteContext) {
       interestLevel: parseEnum(InterestLevel, body.interestLevel, InterestLevel.NEUTRAL),
       notes: body.notes ? String(body.notes) : null,
       followUpNeeded: Boolean(body.followUpNeeded),
+      signedInAt: new Date(),
     },
   });
 

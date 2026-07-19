@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { LeadPriority, LeadSource, LeadStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { ensureDemoWorkspace } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/current-user";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -36,7 +36,9 @@ function parseCSVLine(line: string): string[] {
 }
 
 export async function POST(request: Request) {
-  const user = await ensureDemoWorkspace();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
   const body = await request.json();
 
   if (!body.csvContent) {
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
     const lead = await prisma.lead.create({
       data: {
         userId: user.id,
+        organizationId: user.organizationId,
         firstName: fields[0].split(" ")[0] || "Unknown",
         lastName: fields[0].split(" ").slice(1).join(" ") || "Contact",
         email: fields[1] || null,
