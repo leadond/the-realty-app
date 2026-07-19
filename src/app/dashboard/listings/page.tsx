@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Sparkles, Copy, Check, Loader2, Home, Bed, Bath, Square, MapPin } from 'lucide-react';
-import { callOllamaChat } from '@/lib/ai/provider';
+import { callAIChat } from '@/lib/ai/provider';
 
 export default function ListingsPage() {
   const [form, setForm] = useState({
@@ -56,7 +56,7 @@ Write a listing description that includes:
 Make it professional, persuasive, and optimized for MLS/Zillow/Realtor.com. Use vivid language but stay factual. Include relevant keywords for SEO. Keep it between 200-400 words.`;
 
     try {
-      const response = await callOllamaChat([
+      const response = await callAIChat([
         { role: 'system', content: 'You are an expert real estate copywriter who writes compelling, SEO-optimized listing descriptions that sell homes.' },
         { role: 'user', content: prompt },
       ]);

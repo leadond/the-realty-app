@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Search, MapPin, Bed, Bath, Square, Save, Loader2, Sparkles } from 'lucide-react';
-import { callOllamaChat } from '@/lib/ai/provider';
+import { callAIChat } from '@/lib/ai/provider';
 
 type MatchResult = {
   address: string;
@@ -55,7 +55,7 @@ Client Requirements:
 Return exactly 5 property matches as a JSON array. Make them realistic for the ${form.location || 'US'} market.`;
 
     try {
-      const response = await callOllamaChat([
+      const response = await callAIChat([
         { role: 'system', content: 'You are a helpful real estate assistant. Return only valid JSON arrays when asked for property matches.' },
         { role: 'user', content: prompt },
       ]);

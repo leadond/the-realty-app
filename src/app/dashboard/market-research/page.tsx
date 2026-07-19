@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Search, Loader2, TrendingUp, School, MapPin, DollarSign, Users, Home, Sparkles } from 'lucide-react';
-import { callOllamaChat } from '@/lib/ai/provider';
+import { callAIChat } from '@/lib/ai/provider';
 
 export default function MarketResearchPage() {
   const [query, setQuery] = useState('');
@@ -31,7 +31,7 @@ Include the following sections with realistic data:
 Format the response in clear markdown with headers and bullet points. Be specific and data-driven.`;
 
     try {
-      const response = await callOllamaChat([
+      const response = await callAIChat([
         { role: 'system', content: 'You are an expert real estate market analyst. Provide detailed, data-rich market research reports.' },
         { role: 'user', content: prompt },
       ]);

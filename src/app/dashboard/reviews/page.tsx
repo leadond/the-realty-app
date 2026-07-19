@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Star, Send, Sparkles, Copy, Check, Loader2, MessageSquare, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { callOllamaChat } from '@/lib/ai/provider';
+import { callAIChat } from '@/lib/ai/provider';
 
 type Review = {
   id: string;
@@ -63,7 +63,7 @@ The response should:
 - Keep it under 100 words`;
 
     try {
-      const result = await callOllamaChat([
+      const result = await callAIChat([
         { role: 'system', content: 'You are a real estate agent responding to client reviews professionally.' },
         { role: 'user', content: prompt },
       ]);
@@ -77,7 +77,7 @@ The response should:
   const generateRequest = async () => {
     setGeneratingRequest(true);
     try {
-      const result = await callOllamaChat([
+      const result = await callAIChat([
         { role: 'system', content: 'You write personalized review request messages for real estate agents.' },
         { role: 'user', content: 'Write a warm, professional message asking a recent client to leave a review. Make it personal, not pushy. Include where they can leave the review (Google, Zillow). Keep it under 150 words.' },
       ]);

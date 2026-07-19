@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Sparkles, Loader2, MapPin, Home, Users, TrendingUp, MessageSquare, AlertCircle, Send } from 'lucide-react';
-import { callOllamaChat } from '@/lib/ai/provider';
+import { callAIChat } from '@/lib/ai/provider';
 
 type Showing = {
   id: string;
@@ -51,7 +51,7 @@ Provide:
 Be specific, data-driven, and actionable.`;
 
     try {
-      const result = await callOllamaChat([
+      const result = await callAIChat([
         { role: 'system', content: 'You are a professional real estate showing assistant. Provide detailed, actionable briefings.' },
         { role: 'user', content: prompt },
       ]);
@@ -81,7 +81,7 @@ Include:
 Keep it warm, professional, and under 200 words.`;
 
     try {
-      const result = await callOllamaChat([
+      const result = await callAIChat([
         { role: 'system', content: 'You write excellent real estate follow-up emails.' },
         { role: 'user', content: prompt },
       ]);

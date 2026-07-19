@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Copy, Check, Sparkles, Mail, Send, Edit2, Loader2 } from 'lucide-react';
-import { callOllamaChat } from '@/lib/ai/provider';
+import { callAIChat } from '@/lib/ai/provider';
 
 const TEMPLATES = [
   {
@@ -128,7 +128,7 @@ Subject: ${selectedTemplate.subject}
 Body:
 ${selectedTemplate.body}`;
     try {
-      const result = await callOllamaChat([
+      const result = await callAIChat([
         { role: 'system', content: 'You are a real estate communication specialist. Write warm, professional emails.' },
         { role: 'user', content: prompt },
       ]);

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Sparkles, Copy, Check, Loader2, Share2, Mail, FileText, MessageCircle, Palette } from 'lucide-react';
-import { callOllamaChat } from '@/lib/ai/provider';
+import { callAIChat } from '@/lib/ai/provider';
 
 export default function MarketingPage() {
   const [propertyDetails, setPropertyDetails] = useState('');
@@ -30,7 +30,7 @@ export default function MarketingPage() {
     };
 
     try {
-      const result = await callOllamaChat([
+      const result = await callAIChat([
         { role: 'system', content: 'You are an expert real estate marketing copywriter.' },
         { role: 'user', content: prompts[platform] || prompts.facebook },
       ]);
@@ -47,7 +47,7 @@ export default function MarketingPage() {
     setResults(prev => ({ ...prev, flyer: '' }));
 
     try {
-      const result = await callOllamaChat([
+      const result = await callAIChat([
         { role: 'system', content: 'You design real estate flyers. Write compelling flyer content with clear sections.' },
         { role: 'user', content: `Write content for a real estate open house/listing flyer. Include:\n1. Eye-catching headline\n2. Property highlights (3-5 bullet points)\n3. Neighborhood selling points\n4. Agent contact section\n5. QR code call-to-action text\n\nProperty details: ${propertyDetails}` },
       ]);
