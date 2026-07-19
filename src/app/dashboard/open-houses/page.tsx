@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Plus, Download, Users, Calendar, MapPin, CheckSquare, Edit2, Trash2, Loader2 } from 'lucide-react';
+import QRCode from 'qrcode';
+import { Plus, Download, Users, Calendar, MapPin, CheckSquare, Trash2, QrCode, X } from 'lucide-react';
 
 type OpenHouse = {
   id: string;
@@ -43,6 +44,8 @@ export default function OpenHousesPage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedOH, setSelectedOH] = useState<string | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [qrOpenHouse, setQrOpenHouse] = useState<OpenHouse | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const [form, setForm] = useState({ propertyId: '', startDate: '', endDate: '', description: '' });
   const [visitorForm, setVisitorForm] = useState({ firstName: '', lastName: '', email: '', phone: '', interestLevel: 'NEUTRAL', followUpNeeded: false });
 
@@ -93,10 +96,25 @@ export default function OpenHousesPage() {
     load();
   };
 
+  const showQR = async (oh: OpenHouse) => {
+    const url = `${window.location.origin}/open-house/${oh.id}`;
+    const dataUrl = await QRCode.toDataURL(url, { width: 300, margin: 2 });
+    setQrOpenHouse(oh);
+    setQrDataUrl(dataUrl);
+  };
+
+  const downloadQR = () => {
+    if (!qrDataUrl || !qrOpenHouse) return;
+    const a = document.createElement('a');
+    a.href = qrDataUrl;
+    a.download = `open-house-qr-${qrOpenHouse.id}.png`;
+    a.click();
+  };
+
   if (loading) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2"><Calendar className="text-purple-500" /> Open House Manager</h1>
         <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
@@ -137,7 +155,10 @@ export default function OpenHousesPage() {
             </div>
 
             <div className="p-4">
-              <div className="flex gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button onClick={() => showQR(oh)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                  <QrCode size={14} /> QR Sign-In Code
+                </button>
                 <button onClick={() => { setSelectedOH(oh.id); setShowSignIn(true); }} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   <Users size={14} /> Sign-In Visitor ({oh.visitors.length})
                 </button>
@@ -177,6 +198,23 @@ export default function OpenHousesPage() {
             </div>
           </div>
         ))
+      )}
+
+      {qrOpenHouse && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setQrOpenHouse(null)}>
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Sign-In QR Code</h2>
+              <button onClick={() => setQrOpenHouse(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-gray-500 mb-3">{qrOpenHouse.property?.address}</p>
+            {qrDataUrl && <img src={qrDataUrl} alt="QR code for visitor sign-in" className="mx-auto rounded-lg border" />}
+            <p className="text-xs text-gray-400 mt-3">Print this and place it at the entrance — visitors scan to sign in on their own phone.</p>
+            <button onClick={downloadQR} className="mt-4 w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 inline-flex items-center justify-center gap-2">
+              <Download size={16} /> Download QR Code
+            </button>
+          </div>
+        </div>
       )}
 
       {showSignIn && selectedOH && (
