@@ -3,6 +3,7 @@ import { InterestLevel } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,6 +16,9 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown, 
 export async function POST(request: Request, context: RouteContext) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "open-houses");
+  if (denied) return denied;
 
   const { id } = await context.params;
   const owned = await prisma.openHouse.findFirst({ where: { id, userId: user.id }, select: { id: true } });

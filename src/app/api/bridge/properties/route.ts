@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 import {
   bridgeFetch,
   getDefaultBridgeDatasetId,
@@ -38,6 +40,12 @@ function buildFilter(params: URLSearchParams) {
 }
 
 export async function GET(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "zillow-bridge");
+  if (denied) return denied;
+
   if (!isBridgeConfigured()) {
     return NextResponse.json(
       { ok: false, configured: false, error: "Add BRIDGE_SERVER_TOKEN to enable Bridge data access." },

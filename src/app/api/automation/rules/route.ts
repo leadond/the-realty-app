@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "automations");
+  if (denied) return denied;
 
   const rules = await prisma.automationRule.findMany({
     where: { userId: user.id },
@@ -19,6 +23,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "automations");
+  if (denied) return denied;
 
   const body = await request.json();
   if (!body.name || !body.triggerType || !body.actionType) {

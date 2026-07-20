@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 import { ensureIntegrationsSeeded, isIntegrationConfigured } from "@/lib/integrations/registry";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "connected-apps");
+  if (denied) return denied;
 
   await ensureIntegrationsSeeded();
 

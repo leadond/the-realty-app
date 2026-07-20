@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 import { isIntegrationConfigured } from "@/lib/integrations/registry";
 
 type RouteContext = { params: Promise<{ name: string }> };
@@ -9,6 +10,9 @@ type RouteContext = { params: Promise<{ name: string }> };
 export async function POST(request: Request, context: RouteContext) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "connected-apps");
+  if (denied) return denied;
 
   const { name } = await context.params;
   const integration = await prisma.appIntegration.findUnique({ where: { name } });

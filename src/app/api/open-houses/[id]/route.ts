@@ -3,6 +3,7 @@ import { OpenHouseStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -16,6 +17,9 @@ export async function GET(_request: Request, context: RouteContext) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
+  const denied = requireTierResponse(user.planTier, "open-houses");
+  if (denied) return denied;
+
   const { id } = await context.params;
   const openHouse = await prisma.openHouse.findFirst({
     where: { id, userId: user.id },
@@ -28,6 +32,9 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "open-houses");
+  if (denied) return denied;
 
   const { id } = await context.params;
   const owned = await prisma.openHouse.findFirst({ where: { id, userId: user.id }, select: { id: true } });
@@ -49,6 +56,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 export async function DELETE(_request: Request, context: RouteContext) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "open-houses");
+  if (denied) return denied;
 
   const { id } = await context.params;
   const owned = await prisma.openHouse.findFirst({ where: { id, userId: user.id }, select: { id: true } });

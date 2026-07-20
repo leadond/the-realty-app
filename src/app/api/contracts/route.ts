@@ -3,6 +3,7 @@ import { ContractType } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 import { renderContractTemplate } from "@/lib/contract-templates";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
@@ -12,6 +13,9 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown, 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "contracts");
+  if (denied) return denied;
 
   const contracts = await prisma.contract.findMany({
     where: { agentId: user.id },
@@ -25,6 +29,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "contracts");
+  if (denied) return denied;
 
   const body = await request.json();
   if (!body.buyerName || !body.buyerEmail) {

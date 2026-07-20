@@ -3,6 +3,7 @@ import { OpenHouseStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
+import { requireTierResponse } from "@/lib/entitlements";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -13,6 +14,9 @@ function parseEnum<T extends Record<string, string>>(source: T, value: unknown, 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "open-houses");
+  if (denied) return denied;
 
   const openHouses = await prisma.openHouse.findMany({
     where: { userId: user.id },
@@ -26,6 +30,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const denied = requireTierResponse(user.planTier, "open-houses");
+  if (denied) return denied;
 
   const body = await request.json();
 
