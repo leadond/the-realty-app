@@ -14,6 +14,12 @@ const TOKEN_LIMIT_BY_TIER: Record<string, number> = {
   ENTERPRISE: 5000000,
 };
 
+// Feature-access tier (PlanTier), separate from the AI token-budget tier above.
+const PLAN_TIER_BY_PLAN: Record<string, "PRO" | "PROFESSIONAL"> = {
+  pro: "PRO",
+  professional: "PROFESSIONAL",
+};
+
 /**
  * Stripe webhook — not behind session auth (Stripe has no user session);
  * instead verifies the request signature with STRIPE_WEBHOOK_SECRET.
@@ -53,10 +59,14 @@ export async function POST(request: Request) {
       });
 
       const tier = TIER_BY_PLAN[plan];
-      if (tier) {
+      const planTier = PLAN_TIER_BY_PLAN[plan];
+      if (tier || planTier) {
         await prisma.user.update({
           where: { id: userId },
-          data: { aiTier: tier, monthlyTokenLimit: TOKEN_LIMIT_BY_TIER[tier] },
+          data: {
+            ...(tier ? { aiTier: tier, monthlyTokenLimit: TOKEN_LIMIT_BY_TIER[tier] } : {}),
+            ...(planTier ? { planTier } : {}),
+          },
         });
       }
     }
@@ -71,7 +81,7 @@ export async function POST(request: Request) {
       await prisma.subscription.update({ where: { id: existing.id }, data: { status: "canceled" } });
       await prisma.user.update({
         where: { id: existing.userId },
-        data: { aiTier: "FREE", monthlyTokenLimit: 20000 },
+        data: { aiTier: "FREE", monthlyTokenLimit: 20000, planTier: "FREE" },
       });
     }
   }

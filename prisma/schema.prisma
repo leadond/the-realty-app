@@ -29,6 +29,11 @@ model User {
 
   aiTier            AITier      @default(FREE)
   monthlyTokenLimit Int         @default(20000)
+  planTier          PlanTier    @default(FREE)
+
+  profileSlug         String?  @unique
+  profileBio           String?
+  profileHeadshotUrl   String?
 
   subscription  Subscription?
   leads         Lead[]
@@ -59,6 +64,13 @@ model User {
   importJobs    ImportJob[]
   sentInvites   OrgInvite[]      @relation("InviteSender")
 
+  tasks               Task[]
+  pushSubscriptions    PushSubscription[]
+  webhookEndpoints     WebhookEndpoint[]
+  commissionSplits     CommissionSplit[]  @relation("SplitAgent")
+  smsMessages          SmsMessage[]
+  agentPhoneNumber     AgentPhoneNumber?
+
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -75,6 +87,17 @@ enum UserRole {
 enum AITier {
   FREE
   PRO
+  ENTERPRISE
+}
+
+// Feature-access tier, distinct from AITier (AI token budget). Drives what
+// modules a user can open, both in nav display and server-side enforcement.
+// See src/lib/entitlements.ts for the single source of truth on what each
+// tier unlocks.
+enum PlanTier {
+  FREE
+  PRO
+  PROFESSIONAL
   ENTERPRISE
 }
 
@@ -97,6 +120,7 @@ model Organization {
   brokerUser    User?       @relation("OrgBroker", fields: [brokerUserId], references: [id], onDelete: SetNull)
 
   plan          String      @default("starter") // starter, professional, enterprise
+  planTier      PlanTier    @default(FREE)       // canonical tier used for feature gating
   billingStatus String      @default("active")  // active, past_due, canceled
   stripeCustomerId     String?
   stripeSubscriptionId String?
@@ -206,6 +230,7 @@ model Lead {
   showings      Showing[]
   contracts     Contract[]
   callLogs      CallLog[]
+  smsMessages   SmsMessage[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -719,6 +744,7 @@ model Transaction {
   agentNotes    String?
   checklist     TransactionChecklist[]
   documents     Document[]
+  commissionSplits CommissionSplit[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -1191,4 +1217,112 @@ model ImportError {
 
   @@index([jobId])
   @@map("import_errors")
+}
+
+// ============================================================
+// TASKS (free-form to-do list, FREE tier)
+// ============================================================
+
+model Task {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  notes       String?
+  dueDate     DateTime?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@map("tasks")
+}
+
+// ============================================================
+// PUSH NOTIFICATIONS (PRO tier)
+// ============================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ============================================================
+// OUTGOING WEBHOOKS (ENTERPRISE tier)
+// ============================================================
+
+model WebhookEndpoint {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  events    String   // comma-separated: lead.created,showing.scheduled,contract.signed
+  secret    String   // HMAC signing key for payload verification on the receiving end
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("webhook_endpoints")
+}
+
+// ============================================================
+// COMMISSION SPLITS (PROFESSIONAL tier)
+// ============================================================
+
+model CommissionSplit {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  agentId       String
+  agent         User        @relation("SplitAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  role          String      // REFERRING, CO_LISTING, CO_BUYING, TRANSACTION_COORDINATOR
+  splitPercent  Float
+  splitAmount   Float?
+  notes         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([transactionId])
+  @@map("commission_splits")
+}
+
+// ============================================================
+// SMS MESSAGING (PRO tier, Twilio-gated)
+// ============================================================
+
+model SmsMessage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  direction   String   // OUTBOUND, INBOUND
+  body        String
+  fromNumber  String
+  toNumber    String
+  status      String   @default("PENDING") // PENDING, SENT, DELIVERED, FAILED, RECEIVED
+  twilioSid   String?
+  createdAt   DateTime @default(now())
+
+  @@index([leadId])
+  @@index([userId])
+  @@map("sms_messages")
+}
+
+model AgentPhoneNumber {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber   String   @unique // E.164 format
+  twilioSid     String
+  provisionedAt DateTime @default(now())
+
+  @@map("agent_phone_numbers")
 }

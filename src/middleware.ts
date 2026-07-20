@@ -38,5 +38,13 @@ export const config = {
     "/api/billing/portal",
     "/api/bridge/:path*",
     "/api/account/:path*",
+    "/api/tasks/:path*",
+    "/api/documents/:path*",
+    "/api/sms/:path*",
+    "/api/push/:path*",
+    "/api/commission-splits/:path*",
+    "/api/commissions/:path*",
+    "/api/business-card/:path*",
+    "/api/webhooks-config/:path*",
   ],
 };
