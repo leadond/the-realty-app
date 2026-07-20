@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar, Plus, Clock, MapPin, User, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { Calendar, CalendarClock, Plus, Clock, MapPin, User, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 
 type Showing = {
   id: string;
@@ -127,6 +128,9 @@ export default function ShowingsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Showing Calendar</h1>
         <div className="flex gap-2">
+          <Link href="/dashboard/calendar-sync" className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-200 rounded-md hover:bg-gray-300">
+            <CalendarClock size={16} /> Sync to your calendar
+          </Link>
           <button onClick={() => setView('daily')} className={`px-3 py-1.5 text-sm rounded-md ${view === 'daily' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Daily</button>
           <button onClick={() => setView('weekly')} className={`px-3 py-1.5 text-sm rounded-md ${view === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Weekly</button>
           <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">

@@ -25,7 +25,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ ok: false, error: "Lead not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, lead });
+  return NextResponse.json({ ok: true, lead, planTier: user.planTier });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {

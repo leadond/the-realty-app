@@ -4,6 +4,7 @@ import { ShowingStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { notifySlack } from "@/lib/integrations/slack";
+import { dispatchWebhookEvent } from "@/lib/webhooks";
 
 function parseEnum<T extends Record<string, string>>(source: T, value: unknown, fallback: T[keyof T]) {
   return typeof value === "string" && Object.values(source).includes(value)
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
   });
 
   await notifySlack(user.id, `📅 Showing scheduled for *${new Date(showing.scheduledAt).toLocaleString()}*`);
+  await dispatchWebhookEvent(user.id, "showing.scheduled", { showingId: showing.id, propertyId: showing.propertyId, leadId: showing.leadId, scheduledAt: showing.scheduledAt.toISOString() });
 
   return NextResponse.json({ ok: true, showing }, { status: 201 });
 }

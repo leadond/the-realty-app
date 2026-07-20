@@ -3,7 +3,10 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Mail, Phone, Clock, Edit2, Check, X, AlertTriangle, Calendar, MapPin } from 'lucide-react';
 import CallButton from '@/components/CallButton';
+import CopyLinkButton from '@/components/CopyLinkButton';
 import { RiskAlert } from '@/components/RiskAlert';
+
+const PORTAL_TIERS = ['PROFESSIONAL', 'ENTERPRISE'];
 
 type Lead = {
   id: string;
@@ -51,6 +54,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const [showings, setShowings] = useState<Showing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [planTier, setPlanTier] = useState<string>('');
+  const [origin, setOrigin] = useState('');
 
   const [editingCallId, setEditingCallId] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
@@ -68,8 +73,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       const callsData = await callsRes.json();
       const showingsData = await showingsRes.json();
 
-      if (leadData.ok) setLead(leadData.lead);
-      else setError(leadData.error || 'Lead not found');
+      if (leadData.ok) {
+        setLead(leadData.lead);
+        if (leadData.planTier) setPlanTier(leadData.planTier);
+      } else setError(leadData.error || 'Lead not found');
 
       if (callsData.ok) setCalls(callsData.calls);
       if (showingsData.ok) setShowings(showingsData.showings.filter((s: Showing) => s.leadId === id));
@@ -81,6 +88,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   useEffect(() => { load(); }, [id]);
+  useEffect(() => { setOrigin(window.location.origin); }, []);
 
   const startEditCall = (call: CallLog) => {
     setEditingCallId(call.id);
@@ -155,6 +163,18 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           <div className="mt-4 pt-4 border-t text-sm">
             <p className="text-gray-400 mb-1">Notes</p>
             <p className="text-gray-700">{lead.notes}</p>
+          </div>
+        )}
+
+        {PORTAL_TIERS.includes(planTier) && origin && (
+          <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-3">
+            <div className="text-sm">
+              <p className="text-gray-400">Client portal</p>
+              <p className="text-gray-600">Share a private read-only summary with this client.</p>
+            </div>
+            <div className="ml-auto">
+              <CopyLinkButton value={`${origin}/portal/${id}`} />
+            </div>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { notifySlack } from "@/lib/integrations/slack";
+import { dispatchWebhookEvent } from "@/lib/webhooks";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -89,6 +90,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (updated.status === "SIGNED") {
     await notifySlack(contract.agentId, `✅ Contract fully signed: *${contract.title}* by ${contract.buyerName}`);
+    await dispatchWebhookEvent(contract.agentId, "contract.signed", { contractId: updated.id, title: contract.title, buyerName: contract.buyerName, buyerEmail: contract.buyerEmail });
   }
 
   return NextResponse.json({ ok: true, contract: { id: updated.id, status: updated.status } });
