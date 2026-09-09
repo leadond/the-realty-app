@@ -11,7 +11,7 @@ export default async function EmailCampaignsPage() {
   if (!user) redirect('/login');
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="email-campaigns" featureLabel="Email Campaigns">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="email-campaigns" featureLabel="Email Campaigns">
       <EmailCampaignsClient />
     </UpgradeGate>
   );

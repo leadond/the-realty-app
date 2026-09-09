@@ -46,7 +46,7 @@ export default async function InboxPage() {
   if (!user) redirect("/login");
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="sms-messaging" featureLabel="SMS Messaging">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="sms-messaging" featureLabel="SMS Messaging">
       <InboxContent userId={user.id} />
     </UpgradeGate>
   );

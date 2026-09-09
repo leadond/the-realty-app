@@ -23,7 +23,7 @@ export default async function InboxThreadPage({ params }: PageProps) {
   if (!lead) notFound();
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="sms-messaging" featureLabel="SMS Messaging">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="sms-messaging" featureLabel="SMS Messaging">
       <main className="min-h-screen bg-[#f7f5ef] px-5 py-6 text-[#17201b] md:px-8">
         <div className="mx-auto max-w-2xl">
           <Link

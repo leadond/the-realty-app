@@ -7,6 +7,7 @@ type MatchResult = {
   address: string;
   city: string;
   state: string;
+  zip?: string;
   price: number;
   bedrooms: number;
   bathrooms: number;
@@ -34,6 +35,7 @@ export default function MatchmakerPage() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [aiResponse, setAiResponse] = useState('');
   const [error, setError] = useState('');
+  const [saveStatus, setSaveStatus] = useState<Record<number, string>>({});
 
   const handleFindMatches = async () => {
     setLoading(true);
@@ -41,7 +43,7 @@ export default function MatchmakerPage() {
     setResults([]);
     setAiResponse('');
 
-    const prompt = `You are a real estate property matchmaker AI. Find properties that match these client requirements and return ONLY a JSON array (no markdown, no explanation). Each object should have: address, city, state, price, bedrooms, bathrooms, sqft, matchScore (0-100), pros (array of strings), cons (array of strings), neighborhood (string), amenities (array of strings with distances).
+    const prompt = `You are a real estate property matchmaker AI. Find properties that match these client requirements and return ONLY a JSON array (no markdown, no explanation). Each object should have: address, city, state, zip, price, bedrooms, bathrooms, sqft, matchScore (0-100), pros (array of strings), cons (array of strings), neighborhood (string), amenities (array of strings with distances).
 
 Client Requirements:
 - Budget: $${form.budgetMin || '0'} - $${form.budgetMax || 'No limit'}
@@ -77,6 +79,42 @@ Return exactly 5 property matches as a JSON array. Make them realistic for the $
       setError(`Failed to get matches: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
     setLoading(false);
+  };
+
+  const saveMatch = async (prop: MatchResult, index: number) => {
+    if (!prop.zip) {
+      setSaveStatus(prev => ({ ...prev, [index]: 'Missing ZIP code. Regenerate matches or add this property manually.' }));
+      return;
+    }
+
+    setSaveStatus(prev => ({ ...prev, [index]: 'Saving...' }));
+    try {
+      const response = await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: prop.address,
+          city: prop.city,
+          state: prop.state,
+          zip: prop.zip,
+          price: prop.price,
+          bedrooms: prop.bedrooms,
+          bathrooms: prop.bathrooms,
+          sqft: prop.sqft,
+          propertyType: 'SINGLE_FAMILY',
+          status: 'ACTIVE',
+          description: `AI match score: ${prop.matchScore}. ${prop.pros?.join(' ') || ''}`,
+          features: JSON.stringify([...(prop.amenities || []), ...(prop.pros || [])]),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || 'Could not save this match.');
+      }
+      setSaveStatus(prev => ({ ...prev, [index]: 'Saved to Properties' }));
+    } catch (e) {
+      setSaveStatus(prev => ({ ...prev, [index]: e instanceof Error ? e.message : 'Could not save this match.' }));
+    }
   };
 
   return (
@@ -158,7 +196,7 @@ Return exactly 5 property matches as a JSON array. Make them realistic for the $
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="text-lg font-semibold">{prop.address}</h3>
-                  <p className="text-gray-500 flex items-center gap-1"><MapPin size={14} /> {prop.city}, {prop.state}</p>
+                  <p className="text-gray-500 flex items-center gap-1"><MapPin size={14} /> {prop.city}, {prop.state}{prop.zip ? ` ${prop.zip}` : ''}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-bold text-green-600">${(prop.price ?? 0).toLocaleString()}</p>
@@ -208,9 +246,19 @@ Return exactly 5 property matches as a JSON array. Make them realistic for the $
                 )}
               </div>
 
-              <button className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200">
-                <Save size={14} /> Save Match
+              <button
+                onClick={() => saveMatch(prop, i)}
+                disabled={saveStatus[i] === 'Saving...' || saveStatus[i] === 'Saved to Properties'}
+                className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 disabled:opacity-60"
+              >
+                {saveStatus[i] === 'Saving...' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {saveStatus[i] === 'Saved to Properties' ? 'Saved' : 'Save Match'}
               </button>
+              {saveStatus[i] && (
+                <p className={`mt-2 text-sm ${saveStatus[i] === 'Saved to Properties' ? 'text-green-700' : 'text-amber-700'}`}>
+                  {saveStatus[i]}
+                </p>
+              )}
             </div>
           ))}
         </div>

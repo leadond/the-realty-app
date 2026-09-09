@@ -11,7 +11,7 @@ export default async function IntegrationsPage() {
   if (!user) redirect('/login');
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="connected-apps" featureLabel="Connected Apps">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="connected-apps" featureLabel="Connected Apps">
       <IntegrationsClient />
     </UpgradeGate>
   );

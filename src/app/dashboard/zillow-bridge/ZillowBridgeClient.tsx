@@ -8,7 +8,6 @@ import {
   FileSearch,
   Gauge,
   Loader2,
-  MapPinned,
   RefreshCcw,
   Search,
 } from 'lucide-react';
@@ -30,6 +29,8 @@ const lookupTabs = [
 
 type LookupTab = (typeof lookupTabs)[number]['id'];
 
+type BridgeRecord = Record<string, unknown>;
+
 function resultPreview(data: unknown) {
   if (!data) return 'No response yet.';
   return JSON.stringify(data, null, 2).slice(0, 12000);
@@ -40,12 +41,103 @@ async function fetchJson(path: string) {
   return response.json() as Promise<BridgeResult>;
 }
 
+function bridgeItems(data: unknown): BridgeRecord[] {
+  if (Array.isArray(data)) return data.filter((item): item is BridgeRecord => Boolean(item && typeof item === 'object'));
+  if (!data || typeof data !== 'object') return [];
+  const record = data as BridgeRecord;
+  for (const key of ['value', 'bundle', 'items', 'data', 'results']) {
+    if (Array.isArray(record[key])) {
+      return record[key].filter((item): item is BridgeRecord => Boolean(item && typeof item === 'object'));
+    }
+  }
+  return [];
+}
+
+function stringField(record: BridgeRecord, keys: string[], fallback = '') {
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+  }
+  return fallback;
+}
+
+function numberField(record: BridgeRecord, keys: string[], fallback = 0) {
+  for (const key of keys) {
+    const value = record[key];
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return fallback;
+}
+
+function mapPropertyType(value: string) {
+  const normalized = value.toLowerCase();
+  if (normalized.includes('condo')) return 'CONDO';
+  if (normalized.includes('town')) return 'TOWNHOUSE';
+  if (normalized.includes('multi')) return 'MULTI_FAMILY';
+  if (normalized.includes('land') || normalized.includes('lot')) return 'LAND';
+  if (normalized.includes('mobile') || normalized.includes('manufactured')) return 'MOBILE_HOME';
+  if (normalized.includes('commercial')) return 'COMMERCIAL';
+  if (normalized.includes('ranch') || normalized.includes('farm')) return 'RANCH';
+  return 'SINGLE_FAMILY';
+}
+
+function mapStatus(value: string) {
+  const normalized = value.toLowerCase();
+  if (normalized.includes('pending')) return 'PENDING';
+  if (normalized.includes('sold') || normalized.includes('closed')) return 'SOLD';
+  if (normalized.includes('off')) return 'OFF_MARKET';
+  if (normalized.includes('coming')) return 'COMING_SOON';
+  return 'ACTIVE';
+}
+
+function mediaUrls(record: BridgeRecord) {
+  const media = record.Media;
+  if (!Array.isArray(media)) return null;
+  const urls = media
+    .map((item) => (item && typeof item === 'object' ? stringField(item as BridgeRecord, ['MediaURL', 'MediaUrl', 'url']) : ''))
+    .filter(Boolean)
+    .slice(0, 12);
+  return urls.length ? JSON.stringify(urls) : null;
+}
+
+function propertyPayload(record: BridgeRecord) {
+  const propertyType = stringField(record, ['PropertyType', 'PropertySubType']);
+  const status = stringField(record, ['StandardStatus', 'MlsStatus'], 'Active');
+  const featureValues = [
+    stringField(record, ['InteriorFeatures']),
+    stringField(record, ['ExteriorFeatures']),
+    stringField(record, ['CommunityFeatures']),
+  ].filter(Boolean);
+
+  return {
+    mlsId: stringField(record, ['ListingId', 'ListingKey', 'MlsNumber']) || undefined,
+    address: stringField(record, ['UnparsedAddress', 'StreetName', 'Address']),
+    city: stringField(record, ['City']),
+    state: stringField(record, ['StateOrProvince', 'State']),
+    zip: stringField(record, ['PostalCode', 'Zip']),
+    price: numberField(record, ['ListPrice', 'ClosePrice']),
+    bedrooms: numberField(record, ['BedroomsTotal', 'Bedrooms']),
+    bathrooms: numberField(record, ['BathroomsTotalInteger', 'BathroomsFull', 'BathroomsTotal']),
+    sqft: numberField(record, ['LivingArea', 'BuildingAreaTotal', 'AboveGradeFinishedArea']) || undefined,
+    lotSize: numberField(record, ['LotSizeAcres']) || undefined,
+    yearBuilt: numberField(record, ['YearBuilt']) || undefined,
+    propertyType: mapPropertyType(propertyType),
+    status: mapStatus(status),
+    description: stringField(record, ['PublicRemarks', 'PrivateRemarks']),
+    features: featureValues.length ? JSON.stringify(featureValues) : undefined,
+    photos: mediaUrls(record) || undefined,
+  };
+}
+
 export default function ZillowBridgePage() {
   const [activeTab, setActiveTab] = useState<LookupTab>('properties');
   const [loading, setLoading] = useState(false);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
   const [datasets, setDatasets] = useState<BridgeResult | null>(null);
   const [result, setResult] = useState<BridgeResult | null>(null);
+  const [savingListingId, setSavingListingId] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState('');
 
   const [propertyForm, setPropertyForm] = useState({
     datasetId: '',
@@ -91,6 +183,7 @@ export default function ZillowBridgePage() {
   const runLookup = async () => {
     setLoading(true);
     setResult(null);
+    setSaveMessage('');
 
     const params = new URLSearchParams();
     let path = '/api/bridge/properties';
@@ -126,7 +219,32 @@ export default function ZillowBridgePage() {
     setLoading(false);
   };
 
+  const saveListing = async (record: BridgeRecord) => {
+    const payload = propertyPayload(record);
+    const listingKey = payload.mlsId || payload.address || 'listing';
+    if (!payload.address || !payload.city || !payload.state || !payload.zip || !payload.price) {
+      setSaveMessage('This Bridge record is missing address, city, state, zip, or price, so it cannot be saved yet.');
+      return;
+    }
+
+    setSavingListingId(listingKey);
+    setSaveMessage('');
+    const response = await fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => null);
+    if (response.ok && data?.ok) {
+      setSaveMessage(`Saved ${payload.address} to Properties.`);
+    } else {
+      setSaveMessage(data?.error || 'Could not save this listing.');
+    }
+    setSavingListingId(null);
+  };
+
   const ActiveIcon = lookupTabs.find((tab) => tab.id === activeTab)?.icon || Search;
+  const listingResults = activeTab === 'properties' ? bridgeItems(result?.data) : [];
 
   return (
     <div className="space-y-6 p-6">
@@ -277,6 +395,52 @@ export default function ZillowBridgePage() {
               {typeof result?.count === 'number' && <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">{result.count} item(s)</span>}
             </div>
             {result?.error && <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{result.error}</div>}
+            {saveMessage && <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{saveMessage}</div>}
+            {listingResults.length > 0 && (
+              <div className="mb-4 grid gap-3 lg:grid-cols-2">
+                {listingResults.slice(0, 10).map((record, index) => {
+                  const payload = propertyPayload(record);
+                  const listingKey = payload.mlsId || `${payload.address}-${index}`;
+                  return (
+                    <article key={listingKey} className="rounded-lg border border-gray-200 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900">{payload.address || 'Unnamed listing'}</h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {[payload.city, payload.state, payload.zip].filter(Boolean).join(', ')}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                          {payload.status}
+                        </span>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <dt className="text-gray-400">Price</dt>
+                          <dd className="font-semibold text-gray-800">{payload.price ? `$${payload.price.toLocaleString()}` : '-'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-400">Beds</dt>
+                          <dd className="font-semibold text-gray-800">{payload.bedrooms || '-'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-400">Baths</dt>
+                          <dd className="font-semibold text-gray-800">{payload.bathrooms || '-'}</dd>
+                        </div>
+                      </dl>
+                      <button
+                        type="button"
+                        onClick={() => saveListing(record)}
+                        disabled={savingListingId === listingKey}
+                        className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {savingListingId === listingKey ? 'Saving...' : 'Save to Properties'}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
             <pre className="max-h-[34rem] overflow-auto rounded-lg bg-gray-950 p-4 text-xs leading-5 text-gray-100">
               {resultPreview(result?.data || result)}
             </pre>

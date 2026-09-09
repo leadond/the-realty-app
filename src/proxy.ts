@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   if (token) return NextResponse.next();
 
@@ -32,6 +32,7 @@ export const config = {
     "/api/social/:path*",
     "/api/automation/:path*",
     "/api/integrations/:path*",
+    "/api/feature-requests/:path*",
     "/api/import/:path*",
     "/api/org/:path*",
     "/api/billing/checkout",

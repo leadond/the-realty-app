@@ -26,7 +26,10 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ ok: false, error: "A JSON object is required" }, { status: 400 });
+  }
 
   if (!body.address || !body.city || !body.state || !body.zip || !body.price) {
     return NextResponse.json(
@@ -35,10 +38,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const property = await prisma.property.create({
-    data: {
+  const mlsId = body.mlsId ? String(body.mlsId) : null;
+  const data = {
       userId: user.id,
       organizationId: user.organizationId,
+      mlsId,
       address: String(body.address),
       city: String(body.city),
       state: String(body.state),
@@ -52,8 +56,22 @@ export async function POST(request: Request) {
       propertyType: parseEnum(PropertyTypeEnum, body.propertyType, PropertyTypeEnum.SINGLE_FAMILY),
       status: parseEnum(PropertyListingStatus, body.status, PropertyListingStatus.ACTIVE),
       description: body.description ? String(body.description) : null,
-    },
-  });
+      features: body.features ? String(body.features) : null,
+      photos: body.photos ? String(body.photos) : null,
+  };
+
+  if (mlsId) {
+    const existing = await prisma.property.findUnique({ where: { mlsId }, select: { id: true, userId: true } });
+    if (existing && existing.userId !== user.id) {
+      return NextResponse.json({ ok: false, error: "That MLS listing is already saved by another user." }, { status: 409 });
+    }
+    if (existing) {
+      const property = await prisma.property.update({ where: { id: existing.id }, data });
+      return NextResponse.json({ ok: true, property });
+    }
+  }
+
+  const property = await prisma.property.create({ data });
 
   return NextResponse.json({ ok: true, property }, { status: 201 });
 }

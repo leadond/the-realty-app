@@ -11,7 +11,7 @@ export default async function ZillowBridgePage() {
   if (!user) redirect('/login');
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="zillow-bridge" featureLabel="Zillow / Bridge">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="zillow-bridge" featureLabel="Zillow / Bridge">
       <ZillowBridgeClient />
     </UpgradeGate>
   );

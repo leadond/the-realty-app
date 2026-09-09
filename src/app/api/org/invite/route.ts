@@ -4,9 +4,15 @@ import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 
+type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
+
+function canManageOrg(user: CurrentUser): user is NonNullable<CurrentUser> & { organizationId: string } {
+  return Boolean(user && (user.role === "BROKER" || user.role === "ADMIN") && user.organizationId);
+}
+
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "BROKER" || !user.organizationId) {
+  if (!canManageOrg(user)) {
     return NextResponse.json({ ok: false, error: "Broker access required" }, { status: 403 });
   }
 
@@ -20,7 +26,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "BROKER" || !user.organizationId) {
+  if (!canManageOrg(user)) {
     return NextResponse.json({ ok: false, error: "Broker access required" }, { status: 403 });
   }
 
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "BROKER" || !user.organizationId) {
+  if (!canManageOrg(user)) {
     return NextResponse.json({ ok: false, error: "Broker access required" }, { status: 403 });
   }
 

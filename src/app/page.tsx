@@ -1,26 +1,21 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Bot,
   Building2,
   CalendarClock,
   ClipboardCheck,
   FileText,
-  Gauge,
   Home as HomeIcon,
   Inbox,
-  KeyRound,
-  MapPinned,
   Megaphone,
-  MessageSquareText,
-  PhoneCall,
   Radar,
-  ShieldCheck,
   Sparkles,
   Users,
 } from "lucide-react";
 
 import { auth } from "@/lib/auth";
+import AppSplash from "@/components/AppSplash";
+import RealtyLogo from "@/components/RealtyLogo";
 
 const metrics = [
   { label: "Active leads", value: "42", detail: "+8 this week" },
@@ -57,18 +52,13 @@ const workstreams = [
 ];
 
 const modules = [
-  { name: "Inbox", icon: Inbox, href: "/dashboard/inbox" },
-  { name: "Leads", icon: Users, href: "/dashboard/leads" },
-  { name: "Properties", icon: HomeIcon, href: "/dashboard/properties" },
-  { name: "Showings", icon: KeyRound, href: "/dashboard/showings" },
-  { name: "Map", icon: MapPinned, href: "/dashboard/map" },
-  { name: "Follow-ups", icon: PhoneCall, href: "/dashboard/automations" },
-  { name: "AI matcher", icon: Sparkles, href: "/dashboard/matchmaker" },
-  { name: "Briefings", icon: MessageSquareText, href: "/dashboard/today" },
-  { name: "Docs", icon: FileText, href: "/dashboard/documents" },
-  { name: "Campaigns", icon: Megaphone, href: "/dashboard/email-campaigns" },
-  { name: "Health", icon: Gauge, href: "/dashboard/reports" },
-  { name: "Security", icon: ShieldCheck, href: "/dashboard/settings" },
+  { name: "Dashboard", icon: HomeIcon, href: "/dashboard" },
+  { name: "Workday", icon: Inbox, href: "/dashboard/today" },
+  { name: "Clients", icon: Users, href: "/dashboard/leads" },
+  { name: "Listings", icon: Building2, href: "/dashboard/properties" },
+  { name: "Market Data", icon: Sparkles, href: "/dashboard/zillow-bridge" },
+  { name: "Deals & Docs", icon: FileText, href: "/dashboard/transactions" },
+  { name: "Marketing", icon: Megaphone, href: "/dashboard/marketing" },
 ];
 
 const recentActivity = [
@@ -90,19 +80,10 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[#f7f5ef] text-[#17201b]">
+      <AppSplash />
       <div className="flex min-h-screen">
         <aside className="hidden w-72 shrink-0 border-r border-[#d8d1c2] bg-[#fcfbf7] px-5 py-6 lg:block">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-md bg-[#17453b] text-white">
-              <Bot size={22} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-[#6b4f2a]">
-                Local Ops
-              </p>
-              <h1 className="text-lg font-semibold">Realtor AI Assistant</h1>
-            </div>
-          </div>
+          <RealtyLogo />
 
           <nav className="mt-8 space-y-1" aria-label="Workspace modules">
             {modules.map((module) => {
@@ -128,9 +109,9 @@ export default async function Home() {
                 <p className="text-sm font-medium text-[#6b4f2a]">
                   Workspace: realtor-ai-assistant
                 </p>
-                <h2 className="text-2xl font-semibold tracking-normal">
+                <h1 className="text-2xl font-semibold tracking-normal">
                   Mission dashboard
-                </h2>
+                </h1>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link

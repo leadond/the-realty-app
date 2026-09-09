@@ -70,6 +70,7 @@ model User {
   commissionSplits     CommissionSplit[]  @relation("SplitAgent")
   smsMessages          SmsMessage[]
   agentPhoneNumber     AgentPhoneNumber?
+  featureRequests      FeatureAccessRequest[]
 
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
@@ -127,6 +128,7 @@ model Organization {
 
   invites       OrgInvite[]
   contracts     Contract[]
+  featureRequests FeatureAccessRequest[]
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -1325,4 +1327,45 @@ model AgentPhoneNumber {
   provisionedAt DateTime @default(now())
 
   @@map("agent_phone_numbers")
+}
+
+// ============================================================
+// FEATURE DEMAND SIGNALS
+// ============================================================
+
+enum FeatureRequestStatus {
+  PENDING
+  REVIEWED
+  PLANNED
+  SHIPPED
+}
+
+enum FeatureRequestPriority {
+  INTERESTED
+  IMPORTANT
+  URGENT
+}
+
+model FeatureAccessRequest {
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization?        @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  featureKey     String
+  featureLabel   String
+  requesterRole  UserRole?
+  status         FeatureRequestStatus @default(PENDING)
+  priority       FeatureRequestPriority @default(INTERESTED)
+  notes          String?
+
+  requestedAt    DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([userId, featureKey])
+  @@index([featureKey, status])
+  @@index([featureKey, priority])
+  @@index([organizationId])
+  @@map("feature_access_requests")
 }

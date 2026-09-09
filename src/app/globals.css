@@ -31,3 +31,331 @@ a,
 button {
   text-underline-offset: 3px;
 }
+
+.realty-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  isolation: isolate;
+  overflow: hidden;
+  background: #f0ece4;
+  color: #20272b;
+}
+
+.realty-splash__scene,
+.realty-splash__light,
+.realty-splash__reflection,
+.realty-splash__curtain,
+.realty-splash__vignette,
+.realty-splash__grain,
+.realty-splash__scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.realty-splash__scene {
+  z-index: 1;
+  overflow: hidden;
+  transform: scale(1.02);
+  animation: realty-splash-drift 14s cubic-bezier(.2, .62, .25, 1) infinite alternate;
+}
+
+.realty-splash__scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 45% center;
+  filter: brightness(.98) saturate(.98) contrast(1.04);
+}
+
+.realty-splash__scene::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.realty-splash__scene::before {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(6, 7, 6, .34) 0%, rgba(14, 15, 13, .1) 42%, rgba(240, 236, 228, .22) 70%, rgba(240, 236, 228, .55) 100%),
+    linear-gradient(180deg, rgba(9, 8, 7, .12), transparent 42%, rgba(18, 15, 11, .16));
+}
+
+.realty-splash__light {
+  z-index: 2;
+  background:
+    radial-gradient(ellipse 46% 72% at 42% 10%, rgba(246, 235, 205, .42), transparent 69%),
+    radial-gradient(ellipse 35% 62% at 54% 90%, rgba(103, 132, 144, .14), transparent 72%);
+  mix-blend-mode: screen;
+  animation: realty-splash-dawn 11s ease-in-out infinite alternate;
+}
+
+.realty-splash__reflection {
+  z-index: 3;
+  top: auto;
+  height: 44%;
+  opacity: .48;
+  background: linear-gradient(106deg, transparent 9%, rgba(255, 252, 242, .34) 43%, rgba(219, 228, 230, .06) 68%, transparent 86%);
+  transform: translateX(-13%) skewX(-18deg);
+  filter: blur(8px);
+  animation: realty-splash-reflection 12s ease-in-out infinite alternate;
+}
+
+.realty-splash__curtain {
+  z-index: 4;
+  right: auto;
+  width: 22%;
+  opacity: .2;
+  background:
+    linear-gradient(100deg, rgba(237, 233, 224, .04), rgba(249, 247, 239, .7) 58%, rgba(197, 206, 205, .08)),
+    repeating-linear-gradient(90deg, transparent 0 16px, rgba(255, 255, 255, .26) 17px 19px, transparent 20px 34px);
+  animation: realty-splash-curtain 11s ease-in-out infinite alternate;
+}
+
+.realty-splash__vignette {
+  z-index: 5;
+  background:
+    linear-gradient(90deg, rgba(31, 37, 39, .25), transparent 22%, transparent 69%, rgba(235, 231, 223, .12)),
+    radial-gradient(ellipse at 50% 45%, transparent 39%, rgba(27, 32, 34, .2) 100%);
+}
+
+.realty-splash__grain {
+  z-index: 6;
+  opacity: .065;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+.realty-splash__content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(1.6rem, 4.5vw, 5.25rem);
+}
+
+.realty-splash__hero {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding-top: clamp(4.5rem, 13vh, 9rem);
+}
+
+.realty-splash__panel {
+  width: min(100%, 38rem);
+  border-left: 1px solid rgba(213, 163, 96, .72);
+  background: linear-gradient(90deg, rgba(240, 236, 228, .72), rgba(240, 236, 228, .48));
+  box-shadow: 0 24px 70px rgba(12, 14, 12, .14);
+  padding: clamp(1.5rem, 3vw, 3rem) clamp(1.5rem, 4vw, 4.5rem);
+  backdrop-filter: blur(5px);
+}
+
+.realty-splash__accent {
+  width: 3.5rem;
+  height: 1px;
+  margin-bottom: 1.4rem;
+  background: linear-gradient(90deg, #d5a360, rgba(213, 163, 96, .14));
+  box-shadow: 0 0 18px rgba(213, 163, 96, .24);
+  animation: realty-splash-accent 1s cubic-bezier(.2, .8, .22, 1) .1s both;
+}
+
+.realty-splash__title {
+  color: #111917;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3.6rem, 7.4vw, 7.75rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: .91;
+  text-wrap: balance;
+  text-shadow: 0 2px 16px rgba(247, 246, 240, .42);
+  animation: realty-splash-reveal .95s cubic-bezier(.16, .84, .25, 1) .14s both;
+}
+
+.realty-splash__promise {
+  margin-top: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: .42rem;
+  color: #263139;
+  font-size: .9rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.realty-splash__promise p {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  opacity: 0;
+  animation: realty-splash-reveal .65s ease-out forwards;
+}
+
+.realty-splash__promise p:nth-child(1) {
+  animation-delay: .48s;
+}
+
+.realty-splash__promise p:nth-child(2) {
+  animation-delay: .62s;
+}
+
+.realty-splash__promise p:nth-child(3) {
+  animation-delay: .76s;
+}
+
+.realty-splash__promise svg {
+  color: #d5a360;
+}
+
+.realty-splash__tagline {
+  max-width: 18rem;
+  margin-top: 1.2rem;
+  color: #71501f;
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .07em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  animation: realty-splash-reveal .8s ease-out .55s both;
+}
+
+.realty-splash__footer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  animation: realty-splash-reveal .8s ease-out .72s both;
+}
+
+.realty-splash__loading {
+  width: min(100%, 26rem);
+}
+
+.realty-splash__loading-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: .6rem;
+  color: #1f2a2f;
+  font-size: .69rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.realty-splash__loading-label span:last-child {
+  min-width: 2.5rem;
+  color: #b78035;
+  text-align: right;
+}
+
+.realty-splash__track {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: rgba(69, 82, 86, .18);
+}
+
+.realty-splash__fill {
+  height: 100%;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #d5a360, rgba(213, 163, 96, .6));
+  box-shadow: 0 0 12px rgba(213, 163, 96, .35);
+  transition: width .3s cubic-bezier(.42, 0, .32, 1);
+}
+
+@keyframes realty-splash-drift {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to { transform: scale(1.055) translate3d(-.9%, -.35%, 0); }
+}
+
+@keyframes realty-splash-dawn {
+  from { opacity: .55; transform: translate3d(-1.2%, 0, 0) scale(1); }
+  to { opacity: .9; transform: translate3d(1.5%, -.5%, 0) scale(1.04); }
+}
+
+@keyframes realty-splash-reflection {
+  from { transform: translateX(-16%) skewX(-18deg); opacity: .29; }
+  to { transform: translateX(-5%) skewX(-18deg); opacity: .55; }
+}
+
+@keyframes realty-splash-curtain {
+  from { transform: skewX(-1.2deg) scaleX(1); opacity: .15; }
+  to { transform: skewX(1deg) scaleX(1.04); opacity: .25; }
+}
+
+@keyframes realty-splash-accent {
+  from { opacity: 0; transform: scaleX(.1); transform-origin: left; }
+  to { opacity: 1; transform: scaleX(1); transform-origin: left; }
+}
+
+@keyframes realty-splash-reveal {
+  from { opacity: 0; transform: translateY(14px); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@media (max-width: 700px) {
+  .realty-splash__scene {
+    transform: scale(1.05);
+  }
+
+  .realty-splash__scene img {
+    object-position: 38% center;
+  }
+
+  .realty-splash__scene::before {
+    background:
+      linear-gradient(180deg, rgba(16, 14, 11, .04) 0%, rgba(16, 14, 11, .04) 35%, rgba(240, 236, 228, .56) 74%, rgba(240, 236, 228, .86) 100%),
+      linear-gradient(90deg, rgba(10, 9, 8, .18), transparent 66%);
+  }
+
+  .realty-splash__curtain {
+    width: 37%;
+  }
+
+  .realty-splash__content {
+    padding: 1.6rem;
+  }
+
+  .realty-splash__hero {
+    align-items: flex-end;
+    min-height: 0;
+    margin-top: auto;
+    padding-top: 0;
+    padding-bottom: 2.5rem;
+  }
+
+  .realty-splash__panel {
+    width: 100%;
+    padding-left: 1.15rem;
+  }
+
+  .realty-splash__title {
+    max-width: 5.9em;
+  }
+
+  .realty-splash__footer {
+    justify-content: flex-start;
+  }
+
+  .realty-splash__loading {
+    width: min(100%, 20rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realty-splash,
+  .realty-splash *,
+  .realty-splash *::before,
+  .realty-splash *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

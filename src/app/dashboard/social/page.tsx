@@ -11,7 +11,7 @@ export default async function SocialPage() {
   if (!user) redirect('/login');
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="social-scheduler" featureLabel="Social Scheduler">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="social-scheduler" featureLabel="Social Scheduler">
       <SocialClient />
     </UpgradeGate>
   );

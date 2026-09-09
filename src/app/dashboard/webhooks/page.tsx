@@ -31,7 +31,7 @@ export default async function WebhooksPage() {
   }));
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="webhooks" featureLabel="Webhook Export">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="webhooks" featureLabel="Webhook Export">
       <main className="min-h-screen bg-[#f7f5ef] px-5 py-6 text-[#17201b] md:px-8">
         <div className="mx-auto max-w-4xl">
           <header className="border-b border-[#d8d1c2] pb-5">

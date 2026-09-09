@@ -32,7 +32,7 @@ export default async function FilesPage() {
   if (!user) redirect("/login");
 
   return (
-    <UpgradeGate userTier={user.planTier} feature="file-storage" featureLabel="File Storage">
+    <UpgradeGate userTier={user.planTier} userRole={user.role} feature="file-storage" featureLabel="File Storage">
       <FilesContent userId={user.id} />
     </UpgradeGate>
   );

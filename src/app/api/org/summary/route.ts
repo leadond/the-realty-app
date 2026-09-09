@@ -5,7 +5,8 @@ import { getCurrentUser } from "@/lib/current-user";
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "BROKER" || !user.organizationId) {
+  const canViewOrg = user?.role === "BROKER" || user?.role === "ADMIN";
+  if (!user || !canViewOrg || !user.organizationId) {
     return NextResponse.json({ ok: false, error: "Broker access required" }, { status: 403 });
   }
 

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plug, Upload, CheckCircle, X, ArrowRight, FileWarning } from 'lucide-react';
+import { BellRing, Plug, Upload, CheckCircle, X, ArrowRight, FileWarning } from 'lucide-react';
 
 type Integration = {
   id: string;
@@ -49,6 +49,11 @@ function parseCSVClient(content: string): { headers: string[]; rows: string[][] 
   };
   if (lines.length === 0) return { headers: [], rows: [] };
   return { headers: parseLine(lines[0]), rows: lines.slice(1).map(parseLine) };
+}
+
+function requestFeatureForIntegration(name: string) {
+  if (name === 'zillow') return 'zillow-bridge';
+  return 'connected-apps';
 }
 
 export default function IntegrationsPage() {
@@ -246,13 +251,17 @@ export default function IntegrationsPage() {
                   <button onClick={() => setShowSlackModal(true)} className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Connect</button>
                 )
               ) : integration.name === 'zillow' ? (
-                <Link href="/dashboard/zillow-bridge" className="inline-flex px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                  Open Bridge
+                <Link href="/dashboard/request-access?feature=zillow-bridge" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200">
+                  <BellRing size={14} /> Request Access
                 </Link>
               ) : integration.isConfigured ? (
-                <button className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Connect</button>
+                <Link href={`/dashboard/request-access?feature=${requestFeatureForIntegration(integration.name)}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200">
+                  <BellRing size={14} /> Request Access
+                </Link>
               ) : (
-                <span className="text-xs text-gray-400">Requires developer app setup — see docs</span>
+                <Link href={`/dashboard/request-access?feature=${requestFeatureForIntegration(integration.name)}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200">
+                  <BellRing size={14} /> Request Access
+                </Link>
               )}
             </div>
           ))}

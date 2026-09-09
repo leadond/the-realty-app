@@ -47,6 +47,9 @@ function LoginForm() {
       <p className="text-sm text-gray-500 mt-4 text-center">
         New here? <Link href="/register" className="text-blue-600 font-medium">Create an account</Link>
       </p>
+      <p className="text-sm text-gray-500 mt-2 text-center">
+        Forgot your password? <Link href="/forgot-password" className="text-blue-600 font-medium">Reset it</Link>
+      </p>
       <p className="text-xs text-gray-400 mt-4 text-center">Demo login: admin@realtor.com / admin123</p>
     </div>
   );
