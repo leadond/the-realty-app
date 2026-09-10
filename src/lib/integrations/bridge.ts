@@ -83,10 +83,13 @@ export async function bridgeFetch<T = unknown>(
   }
 
   if (!response.ok) {
-    const message =
-      typeof data === "object" && data && "message" in data
-        ? String((data as { message: unknown }).message)
-        : `Bridge request failed with status ${response.status}`;
+    // Bridge's own error shape nests the useful part:
+    // { success: false, status: 401, bundle: { name: "AuthorizationError", message: "..." } }
+    const record = typeof data === "object" && data ? (data as Record<string, unknown>) : null;
+    const bundle = record?.bundle && typeof record.bundle === "object" ? (record.bundle as Record<string, unknown>) : null;
+    const bundleMessage = bundle && typeof bundle.message === "string" ? bundle.message : null;
+    const topLevelMessage = record && typeof record.message === "string" ? record.message : null;
+    const message = bundleMessage || topLevelMessage || `Bridge request failed with status ${response.status}`;
 
     throw new Error(message);
   }
