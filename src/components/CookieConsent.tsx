@@ -29,8 +29,8 @@ export default function CookieConsent() {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-x-3 bottom-3 z-[120] mx-auto max-w-4xl rounded-md border border-[#d8d1c2] bg-[#fcfbf7]/95 p-4 text-[#17201b] shadow-[0_24px_80px_rgba(15,20,17,0.24)] backdrop-blur md:bottom-5 md:p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+        <div className="fixed inset-x-3 bottom-3 z-[120] mx-auto max-w-sm rounded-md border border-[#d8d1c2] bg-[#fcfbf7]/95 p-4 text-[#17201b] shadow-[0_24px_80px_rgba(15,20,17,0.24)] backdrop-blur md:inset-x-auto md:bottom-5 md:right-5 md:left-auto md:p-5">
+          <div className="flex flex-col gap-4">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm bg-[#111917] text-[#d5a360]">
               <Cookie className="h-5 w-5" aria-hidden="true" />
             </div>
@@ -77,7 +77,7 @@ export default function CookieConsent() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-3 left-3 z-[90] inline-flex h-9 items-center gap-2 rounded-md border border-[#d8d1c2] bg-[#fcfbf7]/90 px-3 text-xs font-semibold text-[#34433b] shadow-sm backdrop-blur hover:bg-white"
+          className="fixed bottom-3 right-3 z-[90] inline-flex h-9 items-center gap-2 rounded-md border border-[#d8d1c2] bg-[#fcfbf7]/90 px-3 text-xs font-semibold text-[#34433b] shadow-sm backdrop-blur hover:bg-white"
         >
           <Settings2 className="h-3.5 w-3.5" aria-hidden="true" />
           Cookie settings

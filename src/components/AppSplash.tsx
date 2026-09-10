@@ -14,10 +14,29 @@ const messages = [
 ];
 
 const MIN_SPLASH_MS = 6200;
+export const SPLASH_SEEN_KEY = "realty-splash-seen";
+
+function markSplashSeen() {
+  try {
+    window.sessionStorage.setItem(SPLASH_SEEN_KEY, "1");
+  } catch {
+    // Private browsing / storage disabled — not seeing the splash again this
+    // load is a cosmetic inconvenience, not worth failing over.
+  }
+}
 
 export default function AppSplash() {
   const [progress, setProgress] = useState(0);
   const [dismissed, setDismissed] = useState(false);
+
+  // Mark it seen as soon as it's actually shown, not only once its own
+  // animation finishes — Next.js unmounts a loading.tsx fallback the moment
+  // the real page is ready, regardless of the fallback's own timers, so a
+  // page that becomes ready in under MIN_SPLASH_MS would otherwise never
+  // reach the dismiss callback and the splash would reappear next time.
+  useEffect(() => {
+    markSplashSeen();
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
