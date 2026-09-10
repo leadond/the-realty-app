@@ -28,6 +28,7 @@ import {
   Search,
   Send,
   Settings,
+  ShieldCheck,
   Share2,
   Split,
   Star,
@@ -145,6 +146,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
         section.label === "Admin" ? { ...section, items: [...section.items, brokerNavItem] } : section,
       )
     : navSections;
+  const visibleSections = user.role === "ADMIN"
+    ? sections.map((section) => section.label === "Admin"
+      ? {
+          ...section,
+          items: [
+            ...section.items,
+            { icon: Building2, label: "All Listings", href: "/dashboard/admin/listings" },
+            { icon: ShieldCheck, label: "Backend Admin", href: "/dashboard/admin" },
+          ],
+        }
+      : section)
+    : sections;
   const PrimaryIcon = primaryNavItem.icon;
 
   return (
@@ -166,7 +179,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Link>
 
           <div className="space-y-2">
-            {sections.map((section) => (
+            {visibleSections.map((section) => (
               <details key={section.label} open={section.defaultOpen} className="group rounded-md">
                 <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-md px-3 text-xs font-semibold uppercase text-[#6b4f2a] hover:bg-[#ebe5d8] [&::-webkit-details-marker]:hidden">
                   <section.icon className="h-4 w-4" aria-hidden="true" />
