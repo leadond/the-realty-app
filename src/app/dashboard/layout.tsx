@@ -323,6 +323,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   </details>
                 ))}
               </div>
+
+              <div className="mt-3 border-t border-[#d8d1c2] pt-3">
+                <SignOutButton />
+              </div>
             </nav>
           </details>
         </div>
