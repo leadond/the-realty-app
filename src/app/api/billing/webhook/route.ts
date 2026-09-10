@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 
 import { prisma } from "@/lib/db";
 import { getStripeClient, isBillingConfigured } from "@/lib/billing/stripe";
+import { hydrateEnvFromDb } from "@/lib/secrets";
 
 const TIER_BY_PLAN: Record<string, "PRO" | "ENTERPRISE"> = {
   pro: "PRO",
@@ -26,6 +27,10 @@ const PLAN_TIER_BY_PLAN: Record<string, "PRO" | "PROFESSIONAL"> = {
  * Not covered by the middleware matcher, so it stays publicly reachable.
  */
 export async function POST(request: Request) {
+  // This route is public (no getCurrentUser() call, verified by signature
+  // instead), so it's the one place that must hydrate admin-set secrets itself.
+  await hydrateEnvFromDb();
+
   if (!isBillingConfigured() || !process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Billing webhook not configured" }, { status: 503 });
   }

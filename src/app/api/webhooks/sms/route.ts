@@ -1,6 +1,7 @@
 import twilio from "twilio";
 
 import { prisma } from "@/lib/db";
+import { hydrateEnvFromDb } from "@/lib/secrets";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ function twimlResponse(status = 200) {
  * Twilio does not retry on business-logic no-ops.
  */
 export async function POST(request: Request) {
+  // Public, unauthenticated-by-session route — hydrate admin-set secrets ourselves.
+  await hydrateEnvFromDb();
+
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   if (!authToken) return twimlResponse(200);
 

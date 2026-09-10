@@ -47,5 +47,6 @@ export const config = {
     "/api/commissions/:path*",
     "/api/business-card/:path*",
     "/api/webhooks-config/:path*",
+    "/api/admin/:path*",
   ],
 };

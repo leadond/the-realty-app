@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
-import { Settings, CreditCard, ShieldAlert, Check, Loader2 } from 'lucide-react';
+import { Settings, CreditCard, ShieldAlert, Check, Loader2, KeyRound } from 'lucide-react';
 
 const PLANS = [
   { id: 'free', name: 'Free', price: '$0', features: ['Single agent', '20K AI tokens/mo', 'Core CRM & tools'] },
@@ -17,6 +17,13 @@ export default function SettingsClient() {
   const [deleteEmail, setDeleteEmail] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const handleUpgrade = async (plan: string) => {
     setCheckoutLoading(plan);
@@ -67,11 +74,63 @@ export default function SettingsClient() {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess(false);
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirmation do not match');
+      return;
+    }
+    setPasswordSaving(true);
+    const res = await fetch('/api/account/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json();
+    setPasswordSaving(false);
+    if (data.ok) {
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } else {
+      setPasswordError(data.error || 'Failed to change password');
+    }
+  };
+
   return (
     <>
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2"><Settings className="text-gray-600" /> Settings</h1>
         <p className="text-gray-500 mt-1">Billing and account management</p>
+      </div>
+
+      <div className="bg-white rounded-lg shadow border p-6">
+        <h2 className="font-semibold flex items-center gap-2 mb-4"><KeyRound size={18} /> Change Password</h2>
+        <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl">
+          <div>
+            <label className="block text-sm font-medium mb-1">Current password</label>
+            <input type="password" required autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">New password</label>
+            <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Confirm new password</label>
+            <input type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div className="md:col-span-3 flex items-center gap-3">
+            <button type="submit" disabled={passwordSaving} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm inline-flex items-center gap-2">
+              {passwordSaving ? <Loader2 size={14} className="animate-spin" /> : null}
+              Update password
+            </button>
+            {passwordSuccess && <span className="text-sm text-green-600 inline-flex items-center gap-1"><Check size={14} /> Password updated</span>}
+            {passwordError && <span className="text-sm text-red-500">{passwordError}</span>}
+          </div>
+        </form>
       </div>
 
       <div className="bg-white rounded-lg shadow border p-6">

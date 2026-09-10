@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { CheckCircle2, ExternalLink, KeyRound, ShieldCheck, XCircle } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/current-user";
-import { getPlatformConfig } from "@/lib/platform-config";
+import { getPlatformConfig, type ConfigStatus } from "@/lib/platform-config";
+import PlatformSecretForm from "@/components/PlatformSecretForm";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export default async function AdminOperationsPage() {
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/dashboard");
 
-  const config = getPlatformConfig();
+  const config = await getPlatformConfig();
   const required = config.filter((item) => item.required);
   const optional = config.filter((item) => !item.required);
   const requiredReady = required.every((item) => item.configured);
@@ -60,7 +61,14 @@ export default async function AdminOperationsPage() {
 
       <section className="rounded-lg border border-[#d8d1c2] bg-white p-5">
         <h2 className="font-semibold">Where to configure these</h2>
-        <p className="mt-2 text-sm text-[#58665e]">For local development, add values to `.env.local`. For production, add them in Vercel under Project Settings, Environment Variables, then redeploy. Never paste secret values into the database or browser.</p>
+        <p className="mt-2 text-sm text-[#58665e]">
+          Items marked <strong>editable below</strong> can be set right here — the value is encrypted and stored in the
+          database, since Vercel environment variables can&apos;t be changed without a redeploy. Everything else
+          (database connection, auth secret, the app&apos;s canonical URL, and push-notification keys inlined at build
+          time) must still be set as a real environment variable: for local development in <code>.env.local</code>, for
+          production in Vercel under Project Settings → Environment Variables, then redeploy. Never paste those into
+          this page.
+        </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/dashboard/settings" className="rounded-md bg-[#17453b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f382f]">Open account settings</Link>
           <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-[#d8d1c2] px-4 py-2 text-sm font-semibold text-[#34433b] hover:bg-[#f4f0e7]">Open Vercel <ExternalLink className="h-4 w-4" /></a>
@@ -70,7 +78,7 @@ export default async function AdminOperationsPage() {
   );
 }
 
-function ConfigCard({ item }: { item: ReturnType<typeof getPlatformConfig>[number] }) {
+function ConfigCard({ item }: { item: ConfigStatus }) {
   return (
     <div className="rounded-lg border border-[#d8d1c2] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
@@ -85,6 +93,11 @@ function ConfigCard({ item }: { item: ReturnType<typeof getPlatformConfig>[numbe
       </div>
       <p className="mt-2 text-sm text-[#58665e]">{item.purpose}</p>
       {item.setupUrl && <a href={item.setupUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#17453b] underline">Provider setup <ExternalLink className="h-3 w-3" /></a>}
+      {item.managed ? (
+        <PlatformSecretForm configKey={item.key} />
+      ) : (
+        <p className="mt-3 text-xs italic text-[#9a9284]">Environment variable only — see note below.</p>
+      )}
     </div>
   );
 }

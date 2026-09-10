@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { hydrateEnvFromDb } from "@/lib/secrets";
 
 /**
  * Resolves the authenticated user for the current request, including their
@@ -10,6 +11,11 @@ import { auth } from "@/lib/auth";
 export async function getCurrentUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
+
+  // Every authenticated page/route runs through here first, so this is the
+  // one place admin-set API keys (src/lib/secrets.ts) get loaded into
+  // process.env for the rest of the request.
+  await hydrateEnvFromDb();
 
   return prisma.user.findUnique({
     where: { id: session.user.id },

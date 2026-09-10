@@ -1369,3 +1369,18 @@ model FeatureAccessRequest {
   @@index([organizationId])
   @@map("feature_access_requests")
 }
+
+// Admin-editable third-party API keys, encrypted at rest (AES-256-GCM, key
+// derived from NEXTAUTH_SECRET — see src/lib/secrets.ts). Lets the platform
+// admin set optional service credentials from the Backend Admin UI instead
+// of only through Vercel env vars, which can't be changed at runtime.
+// Foundational config (DATABASE_URL, NEXTAUTH_SECRET/URL, NEXT_PUBLIC_*
+// build-time vars) is intentionally excluded — see src/lib/platform-config.ts.
+model PlatformSecret {
+  key       String   @id
+  valueEnc  String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("platform_secrets")
+}

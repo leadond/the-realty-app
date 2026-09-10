@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { renderPlaceholders, sendEmail, textToHtml } from "@/lib/email/resend";
+import { hydrateEnvFromDb } from "@/lib/secrets";
 
 /**
  * System-triggered automation runner, invoked by Vercel Cron (see
@@ -11,6 +12,10 @@ import { renderPlaceholders, sendEmail, textToHtml } from "@/lib/email/resend";
  * AutomationRule across all users and executes matching actions.
  */
 export async function GET(request: Request) {
+  // Public, unauthenticated-by-session route — hydrate admin-set secrets
+  // (CRON_SECRET, and Resend for the email actions below) ourselves.
+  await hydrateEnvFromDb();
+
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
     const auth = request.headers.get("authorization");
